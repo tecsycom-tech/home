@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel Peru Fibra · Tecsycom</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2714%27 fill=%27%230f9d76%27/%3E%3Cpath d=%27M12 38c11-15 29-15 40 0%27 stroke=%27white%27 stroke-width=%275%27 fill=%27none%27 stroke-linecap=%27round%27/%3E%3Cpath d=%27M20 46c7-9 17-9 24 0%27 stroke=%27white%27 stroke-width=%275%27 fill=%27none%27 stroke-linecap=%27round%27/%3E%3Ccircle cx=%2732%27 cy=%2753%27 r=%274.5%27 fill=%27white%27/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #f4f6fa;
+    --panel: #ffffff;
+    --panel-2: #eef0f4;
+    --line: #dce0e6;
+    --text: #1a202c;
+    --text-dim: #5a6a7e;
+    --accent: #0f9d76;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; height:100%;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Space Grotesk', system-ui, sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{display:flex; flex-direction:column; height:100vh;}
+
+  nav.tabbar{
+    display:flex; align-items:center; gap:6px;
+    background:var(--panel);
+    border-bottom:1px solid var(--line);
+    padding:12px 20px;
+    box-shadow:var(--shadow);
+    flex-wrap:wrap;
+    z-index:5;
+  }
+  nav.tabbar .brand{
+    font-weight:700; font-size:15px; margin-right:18px;
+    color:var(--text); white-space:nowrap;
+  }
+  nav.tabbar .brand span{
+    display:block; font-weight:500; font-size:11.5px; color:var(--text-dim);
+  }
+  .tab-btn{
+    font-family:inherit; font-size:13px; font-weight:600;
+    color:var(--text-dim); background:var(--panel-2);
+    border:1px solid transparent; border-radius:6px;
+    padding:9px 16px; cursor:pointer; transition:all .15s ease;
+    white-space:nowrap;
+  }
+  .tab-btn:hover{ color:var(--text); background:#e4e8ee; }
+  .tab-btn.active{
+    background:var(--accent); color:#fff; box-shadow:var(--shadow);
+  }
+
+  .sync-status{ margin-left:auto; font-size:12px; color:var(--text-dim); max-width:520px; }
+  .sync-status.ok{ color:var(--accent); }
+  .sync-status.warn{ color:#b45309; }
+
+  .frames{ position:relative; flex:1; min-height:0; }
+  .frames iframe{
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    border:none;
+    background:var(--bg);
+    display:none;
+  }
+  .frames iframe.active{ display:block; }
+
+  @media (max-width:700px){
+    nav.tabbar{ padding:10px 12px; gap:5px; }
+    nav.tabbar .brand{ width:100%; margin-right:0; margin-bottom:6px; }
+    .tab-btn{ padding:8px 12px; font-size:12.5px; }
+    .sync-status{ margin-left:0; width:100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <nav class="tabbar">
+    <div class="brand">Peru Fibra <span>Panel operativo · Tecsycom</span></div>
+    <button class="tab-btn active" data-target="frame-dilacion">Dilación</button>
+    <button class="tab-btn" data-target="frame-distrito">Distrito</button>
+    <button class="tab-btn" data-target="frame-evolutivo">Evolutivo</button>
+    <button class="tab-btn" data-target="frame-efectividad">Reporte de Cierre</button>
+    <button class="tab-btn" data-target="frame-adicionales">Reporte por Hora</button>
+    <button class="tab-btn" data-target="frame-bonoextra">Bono Extra</button>
+    <button class="tab-btn" data-target="frame-altasaverias">Reporte Altas vs Averias</button>
+    <button class="tab-btn" data-target="frame-cargaseriado">Carga de Seriado</button>
+    <button class="tab-btn" data-target="frame-producdiaria">Produc-Diaria</button>
+    <div class="sync-status" id="syncStatus"></div>
+  </nav>
+
+  <div class="frames">
+    <iframe id="frame-dilacion" class="active" src="dilacion.html"></iframe>
+    <iframe id="frame-distrito" src="distrito.html"></iframe>
+    <iframe id="frame-evolutivo" src="evolutivo.html"></iframe>
+    <iframe id="frame-efectividad" src="efectividad.html"></iframe>
+    <iframe id="frame-adicionales" src="reporte_adicionales.html"></iframe>
+    <iframe id="frame-bonoextra" src="bonoextra.html" data-nosync></iframe>
+    <iframe id="frame-altasaverias" src="Reporte_Altas_vs_Averias.html" data-nosync></iframe>
+    <iframe id="frame-cargaseriado" src="carga-seriados.html" data-nosync></iframe>
+    <iframe id="frame-producdiaria" src="produccion-diario.html" data-nosync></iframe>
+  </div>
+</div>
+
+<script>
+  const buttons = document.querySelectorAll('.tab-btn');
+  const frames = document.querySelectorAll('.frames iframe');
+
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.dataset.target;
+      buttons.forEach(b => b.classList.toggle('active', b === btn));
+      frames.forEach(f => f.classList.toggle('active', f.id === targetId));
+      const activo = document.getElementById(targetId);
+      if (activo && activo.contentWindow) activo.contentWindow.postMessage({ type: 'pf-mostrar' }, '*');
+    });
+  });
+
+  // Sincronización: cuando se carga un archivo en cualquier pestaña (CSV o Excel),
+  // se reparte a las demás, que lo leen con su propio botón según el tipo de archivo.
+  const etiquetas = {};
+  buttons.forEach(b => { etiquetas[b.dataset.target] = b.textContent.trim(); });
+  const syncStatus = document.getElementById('syncStatus');
+  let sync = null;
+
+  function frameDe(source){ return [...frames].find(f => f.contentWindow === source); }
+
+  function pintarEstado(){
+    if (!sync) return;
+    const ok = [...sync.recibieron].map(id => etiquetas[id]);
+    const falta = [...sync.esperados].filter(id => !sync.recibieron.has(id)).map(id => etiquetas[id]);
+    let txt = sync.nombre + ' · cargado en ' + etiquetas[sync.origen];
+    if (ok.length) txt += ' y también en: ' + ok.join(', ');
+    if (falta.length && sync.vencido) txt += ' · sin respuesta: ' + falta.join(', ') + ' (revisa que esa web tenga la versión nueva)';
+    syncStatus.textContent = txt;
+    syncStatus.className = 'sync-status ' + (falta.length && sync.vencido ? 'warn' : 'ok');
+  }
+
+  window.addEventListener('message', e => {
+    const origen = frameDe(e.source);
+    if (!origen || !e.data || origen.hasAttribute('data-nosync')) return;
+
+    if (e.data.type === 'pf-archivo-cargado' && e.data.file){
+      const otros = [...frames].filter(f => f !== origen && !f.hasAttribute('data-nosync'));
+      sync = { nombre: e.data.file.name, origen: origen.id, esperados: new Set(otros.map(f => f.id)), recibieron: new Set(), vencido: false };
+      otros.forEach(f => f.contentWindow.postMessage({ type: 'pf-cargar-archivo', file: e.data.file }, '*'));
+      pintarEstado();
+      setTimeout(() => { if (sync) { sync.vencido = true; pintarEstado(); } }, 2500);
+    } else if (e.data.type === 'pf-ack' && sync && sync.esperados.has(origen.id)){
+      sync.recibieron.add(origen.id);
+      pintarEstado();
+    }
+  });
+</script>
+
+</body>
+</html>
