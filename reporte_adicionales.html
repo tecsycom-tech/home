@@ -1,0 +1,1861 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reporte de Adicionales por Hora — Peru Fibra</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2714%27 fill=%27%23FF5A0A%27/%3E%3Cpath d=%27M12 38c11-15 29-15 40 0%27 stroke=%27white%27 stroke-width=%275%27 fill=%27none%27 stroke-linecap=%27round%27/%3E%3Cpath d=%27M20 46c7-9 17-9 24 0%27 stroke=%27white%27 stroke-width=%275%27 fill=%27none%27 stroke-linecap=%27round%27/%3E%3Ccircle cx=%2732%27 cy=%2753%27 r=%274.5%27 fill=%27white%27/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --brand-primary:#FF5A0A;
+    --brand-dark:#D94A03;
+    --brand-light:#FFF2EC;
+    
+    --navy:#FF5A0A;
+    --navy-2:#E04E07;
+    --ink:#0F172A;
+    --muted:#64748B;
+    --paper:#F8FAFC;
+    --paper-2:#FFFFFF;
+    --line:#E2E8F0;
+
+    --grupo1:#334155;
+    --grupo2:#C2410C;
+    --grupo3:#FF5A0A;
+    --grupo4:#1E293B;
+
+    --kpi-total:#0F172A;
+    --kpi-turno:#7C3AED;
+    --kpi-hora:#FF5A0A;
+    --kpi-dist:#0284C7;
+
+    --fila-par:#F8FAFC;
+    --fila-impar:#FFFFFF;
+
+    --zona-norte:#E0F2FE;
+    --zona-este:#FFEDD5;
+    --zona-provincia:#FEF3C7;
+    --zona-otra:#F1F5F9;
+
+    --num-cero:#94A3B8;
+    --num-valor:#EA580C;
+
+    --estado-finalizado:#16A34A;
+    --estado-camino:#0284C7;
+    --estado-proceso:#7C3AED;
+    --estado-ausente:#EA580C;
+    --estado-reprograma:#D97706;
+    --estado-cancelado:#DC2626;
+    --estado-otros:#64748B;
+
+    --bg-camino:    #E0F2FE;
+    --bg-proceso:   #F3E8FF;
+
+    --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-num: 'IBM Plex Mono', 'Courier New', monospace;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--font-ui);
+    line-height:1.45;
+  }
+
+  header.app-header{
+    background:#FFFFFF;
+    color:var(--ink);
+    padding:20px clamp(16px,4vw,40px);
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    border-bottom:3px solid var(--brand-primary);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  header.app-header .brand{display:flex;flex-direction:column;gap:2px;}
+  header.app-header .brand .kicker{
+    font-size:12px;letter-spacing:.05em;color:var(--brand-primary);font-weight:700;text-transform:uppercase;
+  }
+  header.app-header .brand h1{
+    margin:0;font-size:clamp(18px,2.4vw,23px);font-weight:800;letter-spacing:-0.01em;color:var(--ink);
+  }
+  .ref-badge{
+    font-family:var(--font-num);font-size:13px;
+    background:var(--brand-light);
+    border:1px solid #FFD8C7;
+    border-radius:8px;padding:8px 14px;color:var(--ink);
+  }
+  .ref-badge b{color:var(--brand-primary);}
+
+  main{max-width:1440px;margin:0 auto;padding:clamp(16px,3vw,32px);}
+
+  .filtros-bar{
+    display:flex;flex-wrap:wrap;align-items:center;gap:12px;
+    background:var(--paper-2);border:1px solid var(--line);border-radius:10px;
+    padding:12px 16px;margin-bottom:16px;box-shadow:0 1px 2px rgba(0,0,0,0.03);
+  }
+  .filtro-item{display:flex;align-items:center;gap:8px;}
+  .filtro-item label{
+    font-size:11.5px;font-weight:700;color:var(--muted);letter-spacing:.03em;
+  }
+  .filtro-item select{
+    background:#fff;border:1px solid var(--line);border-radius:6px;
+    padding:7px 10px;font-size:13px;font-family:var(--font-ui);
+    color:var(--ink);min-width:200px;cursor:pointer;
+  }
+  .filtro-item select:focus{outline:2px solid var(--brand-primary);outline-offset:1px;}
+
+  .upload-card{
+    background:var(--paper-2);border:1px solid var(--line);border-radius:12px;
+    padding:clamp(20px,4vw,36px);display:flex;flex-direction:column;align-items:center;
+    gap:14px;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,0.02);
+  }
+  .upload-card.dragover{border-color:var(--brand-primary);background:var(--brand-light);}
+  .upload-icon{
+    width:48px;height:48px;border-radius:50%;background:var(--brand-light);color:var(--brand-primary);
+    display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:bold;
+    border:1px solid #FFD8C7;
+  }
+  .upload-card h2{margin:0;font-size:18px;font-weight:700;color:var(--ink);}
+  .upload-card p{margin:0;color:var(--muted);font-size:14px;max-width:520px;}
+  .file-input-label{
+    display:inline-flex;align-items:center;gap:8px;background:var(--brand-primary);color:#fff;
+    padding:11px 20px;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer;
+    border:none;transition:background .15s ease, transform .1s ease;
+    box-shadow: 0 2px 4px rgba(255,90,10,0.25);
+  }
+  .file-input-label:hover{background:var(--brand-dark);transform:translateY(-1px);}
+  .file-input-label.excel{background:#0284C7;box-shadow: 0 2px 4px rgba(2,132,199,0.25);}
+  .file-input-label.excel:hover{background:#0369A1;}
+  .upload-buttons{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+  input[type=file]{display:none;}
+  .file-name{font-family:var(--font-num);font-size:12.5px;color:var(--muted);}
+  .upload-error{
+    color:#DC2626;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:6px;
+    padding:10px 14px;font-size:13.5px;max-width:600px;display:none;
+  }
+  .upload-error.show{display:block;}
+
+  .report-toolbar{
+    display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;
+    gap:12px;margin-bottom:14px;
+  }
+  .report-toolbar .title-group h2{margin:0 0 2px 0;font-size:19px;font-weight:700;}
+  .report-toolbar .title-group span{
+    font-size:12.5px;color:var(--muted);font-family:var(--font-num);
+  }
+  .toolbar-actions{display:flex;gap:8px;flex-wrap:wrap;}
+  .btn{
+    font-family:var(--font-ui);font-size:13px;font-weight:600;padding:9px 14px;
+    border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--ink);
+    cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+    transition:all .15s ease;
+  }
+  .btn:hover{border-color:var(--brand-primary);color:var(--brand-primary);}
+  .btn.subtle{background:transparent;border-color:transparent;color:var(--muted);}
+  .btn.subtle:hover{color:var(--ink);text-decoration:underline;}
+  .btn.small{padding:6px 10px;font-size:12px;}
+
+  .table-scroll{
+    background:var(--paper-2);border:1px solid var(--line);border-radius:10px;
+    overflow:auto;max-height:74vh;box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  }
+  table.reporte{
+    border-collapse:collapse;width:100%;min-width:920px;
+    font-family:var(--font-num);font-size:12.6px;
+  }
+  table.reporte thead th{
+    position:sticky;top:0;z-index:2;color:#fff;
+    font-family:var(--font-ui);font-weight:700;font-size:11.5px;letter-spacing:.02em;
+    padding:10px 8px;text-align:center;white-space:nowrap;
+  }
+  table.reporte thead th.grp1{background:var(--grupo1);}
+  table.reporte thead th.grp2{background:var(--grupo2);}
+  table.reporte thead th.grp3{background:var(--grupo3);}
+  table.reporte thead th.grp4{background:var(--grupo4);}
+
+  table.reporte td{
+    padding:7px 8px;text-align:center;
+    border-bottom:1px solid #E2E8F0;border-right:1px solid #F1F5F9;white-space:nowrap;
+  }
+  table.reporte td.txt{
+    text-align:left;font-family:var(--font-ui);font-weight:700;font-size:12.5px;
+  }
+  table.reporte td.cero{color:var(--num-cero);}
+  table.reporte td.valor{color:var(--num-valor);font-weight:600;}
+
+  tr.fila-par td{background:var(--fila-par);}
+  tr.fila-impar td{background:var(--fila-impar);}
+  tr.subtotal-NORTE td{background:var(--zona-norte);font-weight:700;color:#0369A1;}
+  tr.subtotal-ESTE td{background:var(--zona-este);font-weight:700;color:#C2410C;}
+  tr.subtotal-PROVINCIA td{background:var(--zona-provincia);font-weight:700;color:#B45309;}
+  tr.subtotal-OTRA td{background:var(--zona-otra);font-weight:700;color:#334155;}
+
+  tr.total-general td{background:var(--kpi-total);color:#fff;font-weight:700;}
+  tr.total-general td.txt{color:#fff;}
+
+  .panel-block{
+    background:var(--paper-2);border:1px solid var(--line);border-radius:10px;overflow:hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  }
+  .panel-block h3{
+    margin:0;padding:12px 14px;font-size:13px;font-weight:700;
+    background:#F8FAFC;border-bottom:1px solid var(--line);color:var(--ink);
+  }
+
+  .kpi-row{display:flex;flex-direction:column;border-bottom:1px solid #F1F5F9;}
+  .kpi-row:last-child{border-bottom:none;}
+  .kpi-label{
+    font-size:10.5px;font-weight:700;letter-spacing:.03em;color:#fff;display:inline-block;
+    margin:8px 14px 0 14px;border-radius:4px;padding:3px 8px;width:fit-content;
+  }
+  .kpi-value{
+    padding:4px 14px 12px 14px;font-family:var(--font-num);font-size:15px;font-weight:700;
+  }
+  .kpi-label.total{background:var(--kpi-total);}
+  .kpi-label.turno{background:var(--kpi-turno);}
+  .kpi-label.hora{background:var(--kpi-hora);}
+  .kpi-label.dist{background:var(--kpi-dist);}
+
+  .zonas-body{padding:12px 14px 14px 14px;}
+  .zonas-body p.hint{margin:0 0 10px 0;font-size:12px;color:var(--muted);}
+  table.zonas-tbl{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:10px;}
+  table.zonas-tbl th{
+    text-align:left;font-size:10.5px;color:var(--muted);font-weight:700;
+    padding:4px 4px;border-bottom:1px solid var(--line);
+  }
+  table.zonas-tbl td{padding:4px 4px;border-bottom:1px solid #F1F5F9;}
+  table.zonas-tbl input[type=text]{
+    width:100%;border:1px solid var(--line);border-radius:5px;padding:4px 6px;
+    font-size:12px;font-family:var(--font-ui);
+  }
+  table.zonas-tbl select{
+    width:100%;border:1px solid var(--line);border-radius:5px;padding:4px 4px;
+    font-size:12px;font-family:var(--font-ui);
+  }
+  .zonas-tbl .rm-btn{
+    background:none;border:none;color:#DC2626;cursor:pointer;font-size:14px;padding:2px 6px;
+  }
+  .zonas-actions{display:flex;flex-wrap:wrap;gap:6px;}
+
+  .nota{margin-top:16px;font-size:11.5px;color:var(--muted);font-family:var(--font-num);}
+
+  footer.app-footer{
+    text-align:center;padding:26px 16px 40px 16px;color:#94A3B8;font-size:12px;
+  }
+
+  #detectedCols{font-family:var(--font-num);font-size:11.5px;color:var(--muted);}
+
+  .estado-layout{margin-top:26px;}
+  .info-note{
+    background:var(--brand-light);border:1px solid #FFD8C7;border-radius:6px;
+    padding:10px 14px;font-size:13.5px;color:var(--ink);max-width:700px;
+  }
+  .estado-kpis{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;}
+  .estado-badge{
+    background:#FFFFFF;border:1px solid var(--line);border-radius:8px;
+    padding:8px 12px;font-size:12.5px;font-family:var(--font-num);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  }
+  .estado-badge b{font-family:var(--font-ui);font-weight:700;}
+  .dot{
+    display:inline-block;width:8px;height:8px;border-radius:50%;
+    margin-right:6px;vertical-align:middle;
+  }
+
+  .page-layout{display:flex;align-items:flex-start;gap:14px;margin-top:22px;}
+  .sidebar-handle{
+    flex:0 0 auto;width:26px;height:40px;position:sticky;top:16px;
+    border-radius:0 8px 8px 0;background:var(--brand-primary);color:#fff;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    font-size:13px;user-select:none;border:none;box-shadow: 2px 0 4px rgba(0,0,0,0.1);
+  }
+  .sidebar-handle:hover{background:var(--brand-dark);}
+  .zonas-sidebar{
+    flex:0 0 270px;width:270px;overflow:hidden;
+    transition:width .2s ease, opacity .2s ease, margin .2s ease;
+  }
+  .zonas-sidebar.collapsed{width:0;flex:0 0 0;opacity:0;margin:0;pointer-events:none;}
+  .main-content{flex:1;min-width:0;display:flex;flex-direction:column;gap:22px;}
+  @media (max-width: 820px){
+    .page-layout{flex-wrap:wrap;}
+    .zonas-sidebar{width:100%;flex:1 1 100%;}
+    .zonas-sidebar.collapsed{width:0;flex:0 0 0;}
+  }
+
+  .kpi-strip{display:flex;flex-wrap:wrap;gap:12px;}
+  .kpi-strip .kpi-card{
+    background:var(--paper-2);border:1px solid var(--line);border-radius:10px;
+    overflow:hidden;flex:1 1 170px;min-width:160px;box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  }
+  .kpi-label.avance{background:var(--estado-finalizado);}
+
+  .avance-bar-wrap{margin-bottom:16px;}
+  .avance-bar{
+    display:flex;width:100%;height:22px;border-radius:6px;overflow:hidden;
+    border:1px solid var(--line);background:#F1F5F9;
+  }
+  .avance-bar .seg{height:100%;}
+  .avance-legend{
+    display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;
+    font-size:12px;color:var(--muted);font-family:var(--font-num);
+  }
+  .avance-legend .item{display:flex;align-items:center;}
+
+  #tecnicosWrap{margin-top:0;}
+  #tecnicosPanel{
+    background:var(--paper-2);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  }
+  #tecnicosPanel h2{margin:0 0 4px;font-size:17px;font-weight:700;color:var(--ink);}
+  #tecnicosPanel .panel-sub{font-size:12px;color:var(--muted);margin-bottom:16px;}
+
+  .tec-barchart{margin-bottom:20px;display:flex;flex-direction:column;gap:8px;}
+  .tec-bar-row{display:grid;grid-template-columns:200px 1fr 42px;align-items:center;gap:8px;}
+  .tec-bar-label{font-size:11.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tec-bar-track{background:#F1F5F9;border-radius:5px;height:14px;overflow:hidden;}
+  .tec-bar-fill{height:100%;border-radius:5px;min-width:2px;background:var(--brand-primary);}
+  .tec-bar-fill.bad{background:#DC2626;}
+  .tec-bar-pct{font-family:var(--font-num);font-size:11.5px;color:var(--muted);text-align:right;}
+  .tec-barchart-empty{font-size:12.5px;color:var(--muted);padding:20px 0;text-align:center;}
+
+  #tecnicosPanel .tec-table-scroll{width:100%;overflow-x:auto;}
+  table.tec-table{width:100%;border-collapse:collapse;font-size:11.5px;}
+  table.tec-table thead th{
+    text-align:left;color:var(--muted);font-weight:600;
+    padding:7px 6px;border-bottom:1px solid var(--line);
+    background:var(--paper-2);cursor:pointer;white-space:nowrap;
+  }
+  table.tec-table thead th:hover{color:var(--brand-primary);}
+  table.tec-table tbody td{
+    padding:7px 6px;border-bottom:1px solid #F1F5F9;
+    font-family:var(--font-num);white-space:nowrap;color:var(--ink);
+  }
+  table.tec-table tbody tr:hover td{background:#F8FAFC;}
+  table.tec-table tbody td:first-child,
+  table.tec-table thead th:first-child{font-family:var(--font-ui);}
+  table.tec-table tbody td:first-child{
+    max-width:240px;overflow:hidden;text-overflow:ellipsis;
+  }
+  table.tec-table tbody tr.total-row td{
+    font-weight:700;
+    border-top:1.5px solid var(--line);
+    border-bottom:none;
+    color:var(--ink);
+    background:#F8FAFC;
+  }
+  .tec-pill{
+    padding:1px 7px;border-radius:999px;font-size:10.5px;font-weight:600;display:inline-block;
+  }
+  .tec-pill.ok{background:#DCFCE7;color:#15803D;}
+  .tec-pill.bad{background:#FEE2E2;color:#DC2626;}
+
+  table.tec-table td.celda-camino,
+  table.tec-table td.celda-proceso{
+    font-weight:700;
+    color:var(--ink);
+  }
+  table.tec-table td.celda-camino  { background:var(--bg-camino)  !important; }
+  table.tec-table td.celda-proceso { background:var(--bg-proceso) !important; }
+
+  table.tec-table td.celda-pendiente{
+    font-weight:700;
+    color:var(--ink);
+  }
+
+  /* ==========================================================
+     Tarjetas KPI de Efectividad
+     ========================================================== */
+  .efectividad-cards{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:14px;
+    margin-bottom:18px;
+  }
+  @media (max-width: 900px){
+    .efectividad-cards{grid-template-columns:repeat(2, 1fr);}
+  }
+  @media (max-width: 520px){
+    .efectividad-cards{grid-template-columns:1fr;}
+  }
+  .ef-card{
+    background:var(--paper-2);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:16px 18px;
+    position:relative;
+    overflow:hidden;
+    min-width:0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  }
+  .ef-card .ef-label{
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.04em;
+    color:var(--muted);
+    text-transform:uppercase;
+    margin-bottom:10px;
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+  }
+  .ef-card .ef-value{
+    font-family:var(--font-num);
+    font-size:26px;
+    font-weight:700;
+    color:var(--ink);
+    line-height:1.1;
+  }
+  .ef-card .ef-sub{
+    font-size:11.5px;
+    color:var(--muted);
+    margin-top:6px;
+    font-family:var(--font-num);
+  }
+  .ef-card.green{border-left:4px solid var(--estado-finalizado);}
+  .ef-card.blue {border-left:4px solid var(--estado-camino);}
+  .ef-card.purple{border-left:4px solid var(--estado-proceso);}
+  .ef-card.amber{border-left:4px solid var(--brand-primary);}
+  .ef-card.green .ef-value{color:var(--estado-finalizado);}
+  .ef-card.blue  .ef-value{color:var(--estado-camino);}
+  .ef-card.purple .ef-value{color:var(--estado-proceso);}
+  .ef-card.amber .ef-value{color:var(--brand-primary);}
+
+  .ef-target-edit{
+    display:inline-flex;align-items:center;gap:3px;
+    font-family:var(--font-num);font-size:11px;color:var(--muted);
+    background:transparent;border:none;
+  }
+  .ef-target-edit input{
+    width:44px;
+    text-align:center;
+    font-family:var(--font-num);
+    font-size:12px;
+    font-weight:700;
+    color:var(--ink);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:2px 3px;
+    background:#fff;
+  }
+  .ef-target-edit input:focus{outline:2px solid var(--brand-primary);outline-offset:1px;}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="brand">
+    <span class="kicker">PERU FIBRA · OPERACIONES DE CAMPO</span>
+    <h1>Reporte de Adicionales por Hora</h1>
+  </div>
+  <div class="ref-badge" id="refBadge">Fecha de referencia: <b id="refFecha">—</b> · corte turnos: <b id="refCorte">09:00</b></div>
+</header>
+
+<main>
+
+  <div class="filtros-bar" id="filtrosBar" style="display:none;">
+    <div class="filtro-item">
+      <label for="filtroNegocio">NEGOCIO</label>
+      <select id="filtroNegocio">
+        <option value="">Todos</option>
+      </select>
+    </div>
+    <button class="btn small subtle" id="btnLimpiarFiltro">Limpiar filtro</button>
+  </div>
+
+  <div class="upload-card" id="uploadCard">
+    <div class="upload-icon">⇪</div>
+    <h2>Sube el CSV o el Excel de la vista (AppSheet_ViewData)</h2>
+    <p>Arrastra el archivo aquí o selecciónalo. Debe incluir las columnas <b>Distrito</b>, <b>Provincia</b>, <b>H_Progra</b> y <b>Tramo_Atencio</b>, igual que el export de AppSheet. Con Excel se lee automáticamente la hoja <b>BASE_PERUFIBRA</b>.</p>
+    <div class="upload-buttons">
+      <label class="file-input-label" for="csvInput">Cargar CSV</label>
+      <label class="file-input-label excel" for="excelInput">Cargar Excel</label>
+    </div>
+    <input type="file" id="csvInput" accept=".csv">
+    <input type="file" id="excelInput" accept=".xlsx,.xls">
+    <span class="file-name" id="fileName">Ningún archivo cargado</span>
+    <div class="upload-error" id="uploadError"></div>
+  </div>
+
+  <div class="page-layout" id="pageLayout" style="display:none;">
+
+    <div class="sidebar-handle" id="sidebarHandle" title="Mostrar configuración de zonas">⟩</div>
+
+    <aside class="zonas-sidebar collapsed" id="zonasSidebar">
+      <div class="panel-block">
+        <h3>Configuración de zonas</h3>
+        <div class="zonas-body">
+          <p class="hint">Distritos con reglas manuales de zona (anulan la detección automática por Provincia / lista NORTE). Agrega, edita o quita filas y guarda tu configuración para reutilizarla.</p>
+          <table class="zonas-tbl">
+            <thead><tr><th>Distrito</th><th style="width:88px;">Zona</th><th></th></tr></thead>
+            <tbody id="zonasBody"></tbody>
+          </table>
+          <div class="zonas-actions">
+            <button class="btn small" id="btnAddZona">+ Agregar distrito</button>
+            <button class="btn small" id="btnSaveZonas">Guardar (.json)</button>
+            <button class="btn small" id="btnLoadZonas">Cargar .json</button>
+            <button class="btn small subtle" id="btnResetZonas">Restablecer</button>
+          </div>
+          <input type="file" id="zonasFileInput" accept=".json" style="display:none;">
+        </div>
+      </div>
+    </aside>
+
+    <div class="main-content">
+
+      <div class="kpi-strip" id="kpiStrip">
+        <div class="kpi-card">
+          <div class="kpi-row">
+            <span class="kpi-label total">TOTAL GENERAL (turnos)</span>
+            <span class="kpi-value" id="kpiTotal">0</span>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-row">
+            <span class="kpi-label turno">TURNO MAYOR</span>
+            <span class="kpi-value" id="kpiTurno">—</span>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-row">
+            <span class="kpi-label hora">HORA PICO</span>
+            <span class="kpi-value" id="kpiHora">—</span>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-row">
+            <span class="kpi-label dist">DISTRITOS</span>
+            <span class="kpi-value" id="kpiDistritos">0</span>
+          </div>
+        </div>
+        <div class="kpi-card" id="kpiAvanceCard" style="display:none;">
+          <div class="kpi-row">
+            <span class="kpi-label avance">AVANCE (FINALIZADO)</span>
+            <span class="kpi-value" id="kpiAvance">—</span>
+          </div>
+        </div>
+      </div>
+
+      <section class="report-section">
+        <div class="report-toolbar">
+          <div class="title-group">
+            <h2>Reporte inicial y Adicionales por hora</h2>
+            <span id="detectedCols"></span>
+          </div>
+          <div class="toolbar-actions">
+            <button class="btn" id="btnExportXlsx">⬇ Descargar Excel (.xlsx)</button>
+            <button class="btn subtle" id="btnReset">Cargar otro CSV</button>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table class="reporte" id="reportTable">
+            <thead>
+              <tr>
+                <th class="grp1">ZONA</th>
+                <th class="grp1">DISTRITO</th>
+                <th class="grp1">Turno_1</th>
+                <th class="grp1">Turno_2</th>
+                <th class="grp1">Turno_3</th>
+                <th class="grp2">TOTAL</th>
+                <th class="grp3">9AM</th>
+                <th class="grp3">10AM</th>
+                <th class="grp3">11AM</th>
+                <th class="grp3">12PM</th>
+                <th class="grp3">1PM</th>
+                <th class="grp3">2PM</th>
+                <th class="grp3">3PM</th>
+                <th class="grp3">4PM</th>
+                <th class="grp3">5PM</th>
+                <th class="grp3">6PM</th>
+                <th class="grp4">TOTAL 9AM+</th>
+              </tr>
+            </thead>
+            <tbody id="reportBody"></tbody>
+          </table>
+        </div>
+        <p class="nota" id="notaPie"></p>
+      </section>
+
+      <div class="estado-layout" id="estadoLayout" style="display:none;">
+        <div class="report-toolbar">
+          <div class="title-group">
+            <h2>Evolutivo</h2>
+            <span id="estadoInfo"></span>
+          </div>
+        </div>
+        <div id="estadoAviso" class="info-note" style="display:none;"></div>
+        <div id="estadoContent" style="display:none;">
+
+          <!-- ======== Tarjetas de Efectividad / Productividad ======== -->
+          <div class="efectividad-cards" id="efectividadCards">
+            <div class="ef-card green">
+              <div class="ef-label">Efectividad Finalizados</div>
+              <div class="ef-value" id="efFinalizados">—</div>
+              <div class="ef-sub" id="efFinalizadosSub">—</div>
+            </div>
+            <div class="ef-card blue">
+              <div class="ef-label">Efectividad Aprox</div>
+              <div class="ef-value" id="efAproximada">—</div>
+              <div class="ef-sub" id="efAproximadaSub">Finalizados + En Proceso</div>
+            </div>
+            <div class="ef-card purple">
+              <div class="ef-label">Productividad Promedio</div>
+              <div class="ef-value" id="efPromedio">—</div>
+              <div class="ef-sub" id="efPromedioSub">Efectivos por técnico activo</div>
+            </div>
+            <div class="ef-card amber">
+              <div class="ef-label">
+                Faltan para Objetivo
+                <span class="ef-target-edit">
+                  <input type="number" id="efObjetivo" min="1" max="100" step="1" value="65">
+                  <span>%</span>
+                </span>
+              </div>
+              <div class="ef-value" id="efFaltan">—</div>
+              <div class="ef-sub" id="efFaltanSub">—</div>
+            </div>
+          </div>
+          <!-- ========================================================= -->
+
+          <div class="avance-bar-wrap">
+            <div class="avance-bar" id="avanceBar"></div>
+            <div class="avance-legend" id="avanceLegend"></div>
+          </div>
+
+          <div id="tecnicosWrap">
+            <div id="tecnicosPanel"></div>
+          </div>
+
+          <div class="estado-kpis" id="estadoKpis"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+<footer class="app-footer">Reproduce la lógica de la macro GenerarReporteAdicionales v10 · todo el procesamiento ocurre en tu navegador, el CSV no se envía a ningún servidor.</footer>
+
+<script>
+(function(){
+
+  // ============================================================
+  // OBJETIVO de efectividad EDITABLE y PERSISTENTE (localStorage)
+  // ============================================================
+  const LS_KEY = 'peru_fibra_objetivo_efectividad';
+  let OBJETIVO_EFECTIVIDAD = 0.65;
+  try{
+    const saved = parseFloat(localStorage.getItem(LS_KEY));
+    if(!isNaN(saved) && saved > 0 && saved <= 1) OBJETIVO_EFECTIVIDAD = saved;
+  }catch(e){ /* localStorage no disponible */ }
+
+  function guardarObjetivo(v01){
+    OBJETIVO_EFECTIVIDAD = v01;
+    try{ localStorage.setItem(LS_KEY, String(v01)); }catch(e){}
+  }
+
+  // ============================================================
+  // 0. Configuración de zonas
+  // ============================================================
+  const ZONAS_DEFAULT = [
+    {distrito:"ANCON", zona:"NORTE"},
+    {distrito:"CARABAYLLO", zona:"NORTE"},
+    {distrito:"LOS OLIVOS", zona:"NORTE"},
+    {distrito:"PUENTE PIEDRA", zona:"NORTE"},
+    {distrito:"SAN MARTIN DE PORRES", zona:"NORTE"},
+    {distrito:"SAN MARTÍN DE PORRES", zona:"NORTE"},
+    {distrito:"INDEPENDENCIA", zona:"NORTE"},
+    {distrito:"COMAS", zona:"NORTE"},
+  ];
+  let zonaRules = JSON.parse(JSON.stringify(ZONAS_DEFAULT));
+
+  function renderZonasTable(){
+    const body = document.getElementById('zonasBody');
+    body.innerHTML = '';
+    zonaRules.forEach((rule, idx)=>{
+      const tr = document.createElement('tr');
+
+      const tdDist = document.createElement('td');
+      const inpDist = document.createElement('input');
+      inpDist.type = 'text';
+      inpDist.value = rule.distrito;
+      inpDist.addEventListener('change', e=>{
+        rule.distrito = e.target.value.toUpperCase().trim();
+        if(window.__lastRowsAll) buildReport(window.__lastRowsAll);
+      });
+      tdDist.appendChild(inpDist);
+
+      const tdZona = document.createElement('td');
+      const sel = document.createElement('select');
+      ['NORTE','ESTE','PROVINCIA'].forEach(z=>{
+        const opt = document.createElement('option');
+        opt.value = z; opt.textContent = z;
+        if(z === rule.zona) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      sel.addEventListener('change', e=>{
+        rule.zona = e.target.value;
+        if(window.__lastRowsAll) buildReport(window.__lastRowsAll);
+      });
+      tdZona.appendChild(sel);
+
+      const tdRm = document.createElement('td');
+      const rmBtn = document.createElement('button');
+      rmBtn.className = 'rm-btn';
+      rmBtn.textContent = '✕';
+      rmBtn.title = 'Quitar regla';
+      rmBtn.addEventListener('click', ()=>{
+        zonaRules.splice(idx,1);
+        renderZonasTable();
+        if(window.__lastRowsAll) buildReport(window.__lastRowsAll);
+      });
+      tdRm.appendChild(rmBtn);
+
+      tr.appendChild(tdDist);
+      tr.appendChild(tdZona);
+      tr.appendChild(tdRm);
+      body.appendChild(tr);
+    });
+  }
+
+  document.getElementById('btnAddZona').addEventListener('click', ()=>{
+    zonaRules.push({distrito:'', zona:'ESTE'});
+    renderZonasTable();
+  });
+
+  document.getElementById('btnResetZonas').addEventListener('click', ()=>{
+    if(confirm('¿Restablecer la configuración de zonas a los valores originales de la macro?')){
+      zonaRules = JSON.parse(JSON.stringify(ZONAS_DEFAULT));
+      renderZonasTable();
+      if(window.__lastRowsAll) buildReport(window.__lastRowsAll);
+    }
+  });
+
+  document.getElementById('btnSaveZonas').addEventListener('click', ()=>{
+    const blob = new Blob([JSON.stringify(zonaRules, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'config_zonas_peru_fibra.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('btnLoadZonas').addEventListener('click', ()=>{
+    document.getElementById('zonasFileInput').click();
+  });
+
+  document.getElementById('zonasFileInput').addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev)=>{
+      try{
+        const parsed = JSON.parse(ev.target.result);
+        if(Array.isArray(parsed)){
+          zonaRules = parsed.filter(r=> r && r.distrito && r.zona).map(r=>({
+            distrito: String(r.distrito).toUpperCase().trim(),
+            zona: String(r.zona).toUpperCase().trim()
+          }));
+          renderZonasTable();
+          if(window.__lastRowsAll) buildReport(window.__lastRowsAll);
+        } else {
+          alert('El archivo no tiene el formato esperado.');
+        }
+      }catch(err){
+        alert('No se pudo leer el archivo de configuración: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  renderZonasTable();
+
+  const zonasSidebar = document.getElementById('zonasSidebar');
+  const sidebarHandle = document.getElementById('sidebarHandle');
+  sidebarHandle.addEventListener('click', ()=>{
+    const oculto = zonasSidebar.classList.toggle('collapsed');
+    sidebarHandle.textContent = oculto ? '⟩' : '⟨';
+    sidebarHandle.title = oculto ? 'Mostrar configuración de zonas' : 'Ocultar configuración de zonas';
+  });
+
+  // ============================================================
+  // 1. Parser CSV
+  // ============================================================
+  function parseCSV(text, delimiter){
+    delimiter = delimiter || ';';
+    if(text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+    const rows = [];
+    let row = [];
+    let field = '';
+    let inQuotes = false;
+    const n = text.length;
+    let i = 0;
+    while(i < n){
+      const c = text[i];
+      if(inQuotes){
+        if(c === '"'){
+          if(text[i+1] === '"'){ field += '"'; i += 2; continue; }
+          inQuotes = false; i++; continue;
+        }
+        field += c; i++; continue;
+      } else {
+        if(c === '"'){ inQuotes = true; i++; continue; }
+        if(c === delimiter){ row.push(field); field = ''; i++; continue; }
+        if(c === '\r'){ i++; continue; }
+        if(c === '\n'){ row.push(field); rows.push(row); row = []; field = ''; i++; continue; }
+        field += c; i++; continue;
+      }
+    }
+    if(field.length > 0 || row.length > 0){ row.push(field); rows.push(row); }
+    while(rows.length && rows[rows.length-1].every(f => f === '')) rows.pop();
+    if(!rows.length) return {headers:[], data:[]};
+    const headers = rows.shift().map(h => h.trim());
+    const data = rows.map(r=>{
+      const obj = {};
+      headers.forEach((h, idx)=>{ obj[h] = (r[idx] !== undefined ? r[idx] : '').trim(); });
+      return obj;
+    });
+    return {headers, data};
+  }
+
+  // ============================================================
+  // 1b. Excel -> filas
+  // ============================================================
+  const EXCEL_HEADERS_MAP = {
+    'Distrito': ['distrito'],
+    'Provincia': ['provincia'],
+    'H_Progra': ['h_progra'],
+    'Tramo_Atencio': ['tramo_atencio'],
+    'Negocio': ['negocio','tipo_negocio','tipo_de_negocio'],
+    'Estado': ['estado','estado_orden','estadoorden','status','situacion','estado_actual','estado_servicio','estado_trabajo'],
+    'Tecnico': ['tecnico','técnico','tecnico_asignado','nombre_tecnico','tecnico_responsable',
+                'responsable','empleado','operario','instalador','cuadrilla','nombre_del_tecnico',
+                'tecnico_nombre','nom_tecnico','tecnico_principal']
+  };
+
+  function normalizaEncabezadoExcel(h){
+    return (h||'').toString().trim().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9_]+/g,'_').replace(/^_+|_+$/g,'');
+  }
+
+  function valorCeldaExcel(v){
+    if (v === null || v === undefined) return '';
+    if (v instanceof Date){
+      if (isNaN(v.getTime())) return '';
+      const dd   = String(v.getDate()).padStart(2,'0');
+      const mm   = String(v.getMonth()+1).padStart(2,'0');
+      const yyyy = v.getFullYear();
+      const hh   = String(v.getHours()).padStart(2,'0');
+      const mi   = String(v.getMinutes()).padStart(2,'0');
+      if (yyyy <= 1900) return `${hh}:${mi}`;
+      return `${dd}/${mm}/${yyyy} ${hh}:${mi}`;
+    }
+    if (typeof v === 'number' && v > 0 && v < 1){
+      const totalMin = Math.round(v * 24 * 60);
+      const hh = String(Math.floor(totalMin/60)).padStart(2,'0');
+      const mi = String(totalMin % 60).padStart(2,'0');
+      return `${hh}:${mi}`;
+    }
+    return String(v).trim();
+  }
+
+  function filasDesdeExcel(matriz){
+    if (!matriz || !matriz.length) return {headers:[], data:[]};
+    const headerRow = matriz[0];
+    const norm = headerRow.map(normalizaEncabezadoExcel);
+    const idx = {};
+    Object.keys(EXCEL_HEADERS_MAP).forEach(canon=>{
+      const aliases = EXCEL_HEADERS_MAP[canon];
+      idx[canon] = norm.findIndex(h => aliases.includes(h));
+    });
+    const headers = Object.keys(idx).filter(k => idx[k] >= 0);
+    const data = matriz.slice(1)
+      .filter(r => r && r.some(c => String(c).trim() !== ''))
+      .map(r=>{
+        const obj = {};
+        Object.keys(idx).forEach(canon=>{
+          const i = idx[canon];
+          obj[canon] = (i >= 0 && i < r.length) ? valorCeldaExcel(r[i]) : '';
+        });
+        return obj;
+      });
+    return {headers, data};
+  }
+
+  // ============================================================
+  // 2. Fechas y tramos
+  // ============================================================
+  function parseFechaHora(str){
+    if(str === null || str === undefined) return null;
+
+    if(str instanceof Date){
+      return isNaN(str.getTime()) ? null : str;
+    }
+
+    const s = String(str).trim();
+    if(!s) return null;
+
+    let m = s.match(
+      /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[\s,]+(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s*([ap])\.?\s*m\.?)?)?$/i
+    );
+    if(m){
+      const d = parseInt(m[1],10), mo = parseInt(m[2],10), y = parseInt(m[3],10);
+      let h = m[4] ? parseInt(m[4],10) : 0;
+      const mi = m[5] ? parseInt(m[5],10) : 0;
+      const sec = m[6] ? parseInt(m[6],10) : 0;
+      const ap = m[7] ? m[7].toLowerCase() : null;
+      if(ap === 'p' && h < 12) h += 12;
+      if(ap === 'a' && h === 12) h = 0;
+      const dt = new Date(y, mo-1, d, h, mi, sec);
+      if(!isNaN(dt.getTime())) return dt;
+    }
+
+    m = s.match(
+      /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[\s,T]+(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s*([ap])\.?\s*m\.?)?)?$/i
+    );
+    if(m){
+      const y = parseInt(m[1],10), mo = parseInt(m[2],10), d = parseInt(m[3],10);
+      let h = m[4] ? parseInt(m[4],10) : 0;
+      const mi = m[5] ? parseInt(m[5],10) : 0;
+      const sec = m[6] ? parseInt(m[6],10) : 0;
+      const ap = m[7] ? m[7].toLowerCase() : null;
+      if(ap === 'p' && h < 12) h += 12;
+      if(ap === 'a' && h === 12) h = 0;
+      const dt = new Date(y, mo-1, d, h, mi, sec);
+      if(!isNaN(dt.getTime())) return dt;
+    }
+
+    m = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s*([ap])\.?\s*m\.?)?$/i);
+    if(m){
+      let h = parseInt(m[1],10);
+      const mi = parseInt(m[2],10);
+      const sec = m[3] ? parseInt(m[3],10) : 0;
+      const ap = m[4] ? m[4].toLowerCase() : null;
+      if(ap === 'p' && h < 12) h += 12;
+      if(ap === 'a' && h === 12) h = 0;
+      const hoy = new Date();
+      const dt = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), h, mi, sec);
+      if(!isNaN(dt.getTime())) return dt;
+    }
+
+    return null;
+  }
+
+  function mapTramo(str){
+    const t = (str || '').trim().toUpperCase();
+    if(/^0?8(:00(:00)?)?$/.test(t) || /^08\s*[-–]\s*12/.test(t) || /^08\s*AM/.test(t)) return 'T1';
+    if(/^12(:00(:00)?)?$/.test(t) || /^12\s*[-–]\s*16/.test(t) || /^12\s*PM/.test(t)) return 'T2';
+    if(/^16(:00(:00)?)?$/.test(t) || /^16\s*[-–]\s*20/.test(t) || /^16\s*PM/.test(t)) return 'T3';
+    return null;
+  }
+
+  const HOURS = [9,10,11,12,13,14,15,16,17,18];
+  const HOUR_LABELS = ["9AM","10AM","11AM","12PM","1PM","2PM","3PM","4PM","5PM","6PM"];
+
+  // ============================================================
+  // 2b. Estados y técnicos
+  // ============================================================
+  const ESTADO_ALIASES = ['estado','estado_orden','estadoorden','status','situacion',
+    'estado_actual','estado_servicio','estado_trabajo'];
+  const TECNICO_ALIASES = ['tecnico','técnico','tecnico_asignado','nombre_tecnico',
+    'tecnico_responsable','responsable','empleado','operario','instalador','cuadrilla',
+    'nombre_del_tecnico','tecnico_nombre','nom_tecnico','tecnico_principal'];
+
+  const ESTADOS_LIST = ['PENDIENTE','FINALIZADO','EN CAMINO','EN PROCESO','AUSENTE','REPROGRAMA','CANCELADO','OTROS'];
+  const ESTADO_COLORS = {
+    'PENDIENTE':  '#94A3B8',
+    'FINALIZADO': 'var(--estado-finalizado)',
+    'EN CAMINO':  'var(--estado-camino)',
+    'EN PROCESO': 'var(--estado-proceso)',
+    'AUSENTE':    'var(--estado-ausente)',
+    'REPROGRAMA': 'var(--estado-reprograma)',
+    'CANCELADO':  'var(--estado-cancelado)',
+    'OTROS':      'var(--estado-otros)'
+  };
+
+  function normalizaTexto(h){
+    return (h||'').toString().trim().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+  }
+
+  function encontrarColumnaEstadoCSV(headers){
+    for(const h of headers){
+      if(ESTADO_ALIASES.includes(normalizaTexto(h))) return h;
+    }
+    return null;
+  }
+
+  function encontrarColumnaTecnicoCSV(headers){
+    for(const h of headers){
+      if(TECNICO_ALIASES.includes(normalizaTexto(h))) return h;
+    }
+    return null;
+  }
+
+  function encontrarColumnaNegocioCSV(headers){
+    for(const h of headers){
+      const n = normalizaTexto(h);
+      if(n === 'negocio' || n === 'tipo_negocio' || n === 'tipo_de_negocio') return h;
+    }
+    return null;
+  }
+
+  function normalizarEstado(v){
+    let t = (v||'').toString().trim().toUpperCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    if(!t) return 'PENDIENTE';
+    if(/FINALIZAD/.test(t) || /COMPLETAD/.test(t) || t==='CERRADO' || t==='CERRADA') return 'FINALIZADO';
+    if(/EN\s*CAMINO/.test(t) || /EN\s*RUTA/.test(t)) return 'EN CAMINO';
+    if(/EN\s*PROCESO/.test(t) || /EN\s*EJECUCION/.test(t) || t==='PROCESO') return 'EN PROCESO';
+    if(/PROGRAMAD[OA]/.test(t) || /PENDIENTE/.test(t) || /COORDINAD[OA]/.test(t)) return 'PENDIENTE';
+    if(/AUSENTE/.test(t) || /NO\s*CONTESTA/.test(t) || /NO\s*SE\s*ENCUENTRA/.test(t)) return 'AUSENTE';
+    if(/REPROGRAM/.test(t)) return 'REPROGRAMA';
+    if(/CANCELAD/.test(t)) return 'CANCELADO';
+    return 'OTROS';
+  }
+
+  // ============================================================
+  // 3. Procesamiento principal
+  // ============================================================
+  function procesarDatos(rows){
+    const hoy = new Date();
+    const limite08 = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), 9, 0, 0);
+
+    const zoneRuleMap = new Map();
+    zonaRules.forEach(r=>{
+      if(r.distrito) zoneRuleMap.set(r.distrito.toUpperCase().trim(), r.zona.toUpperCase().trim());
+    });
+
+    const distritos = new Map();
+    let leidos = 0, omitidos = 0;
+
+    rows.forEach(row=>{
+      const distrito = (row['Distrito'] || '').toUpperCase().trim();
+      const provincia = (row['Provincia'] || '').toUpperCase().trim();
+      const tramoRaw = row['Tramo_Atencio'];
+      const hProgra = parseFechaHora(row['H_Progra']);
+
+      if(!distrito || !hProgra){ omitidos++; return; }
+      leidos++;
+
+      if(!distritos.has(distrito)){
+        let zona;
+        if(zoneRuleMap.has(distrito)){
+          zona = zoneRuleMap.get(distrito);
+        } else if(provincia && provincia !== 'LIMA'){
+          zona = 'PROVINCIA';
+        } else {
+          zona = 'ESTE';
+        }
+        distritos.set(distrito, {
+          distrito, zona, t1:0, t2:0, t3:0,
+          horas: Object.fromEntries(HOURS.map(h=>[h,0]))
+        });
+      }
+
+      const rec = distritos.get(distrito);
+      if(hProgra < limite08){
+        const tk = mapTramo(tramoRaw);
+        if(tk === 'T1') rec.t1++;
+        else if(tk === 'T2') rec.t2++;
+        else if(tk === 'T3') rec.t3++;
+      } else {
+        const h = hProgra.getHours();
+        if(HOURS.includes(h)) rec.horas[h]++;
+      }
+    });
+
+    const lista = Array.from(distritos.values());
+    lista.sort((a,b)=> a.zona === b.zona ? a.distrito.localeCompare(b.distrito) : a.zona.localeCompare(b.zona));
+
+    return {lista, limite08, leidos, omitidos};
+  }
+
+  function construirFilas(lista){
+    const filas = [];
+    let zonaActual = null;
+    let acc = null;
+
+    function nuevoAcc(){
+      return {t1:0,t2:0,t3:0, horas: Object.fromEntries(HOURS.map(h=>[h,0]))};
+    }
+    function cerrarZona(){
+      if(!zonaActual) return;
+      const totalTurno = acc.t1 + acc.t2 + acc.t3;
+      const totalHoras = HOURS.reduce((s,h)=> s + acc.horas[h], 0);
+      filas.push({
+        tipo:'subtotal', zona: zonaActual,
+        distrito: 'TOTAL ' + zonaActual,
+        t1:acc.t1, t2:acc.t2, t3:acc.t3, total: totalTurno,
+        horas: acc.horas, totalHoras
+      });
+    }
+
+    lista.forEach(d=>{
+      if(zonaActual !== null && d.zona !== zonaActual){
+        cerrarZona();
+        acc = nuevoAcc();
+      } else if(zonaActual === null){
+        acc = nuevoAcc();
+      }
+      zonaActual = d.zona;
+      acc.t1 += d.t1; acc.t2 += d.t2; acc.t3 += d.t3;
+      HOURS.forEach(h=> acc.horas[h] += d.horas[h]);
+
+      const totalTurno = d.t1 + d.t2 + d.t3;
+      const totalHoras = HOURS.reduce((s,h)=> s + d.horas[h], 0);
+      filas.push({
+        tipo:'dato', zona: d.zona, distrito: d.distrito,
+        t1:d.t1, t2:d.t2, t3:d.t3, total: totalTurno,
+        horas: d.horas, totalHoras
+      });
+    });
+    if(zonaActual !== null) cerrarZona();
+
+    const tg = {t1:0,t2:0,t3:0, horas: Object.fromEntries(HOURS.map(h=>[h,0]))};
+    filas.filter(f=>f.tipo==='dato').forEach(f=>{
+      tg.t1+=f.t1; tg.t2+=f.t2; tg.t3+=f.t3;
+      HOURS.forEach(h=> tg.horas[h]+=f.horas[h]);
+    });
+    const tgTotalTurno = tg.t1+tg.t2+tg.t3;
+    const tgTotalHoras = HOURS.reduce((s,h)=>s+tg.horas[h],0);
+    filas.push({
+      tipo:'total-general', distrito:'TOTAL GENERAL',
+      t1:tg.t1, t2:tg.t2, t3:tg.t3, total: tgTotalTurno,
+      horas: tg.horas, totalHoras: tgTotalHoras
+    });
+
+    return filas;
+  }
+
+  function calcularKPIs(lista){
+    const kpiTotal = lista.reduce((s,d)=> s + d.t1 + d.t2 + d.t3, 0);
+    const sumT1 = lista.reduce((s,d)=> s + d.t1, 0);
+    const sumT2 = lista.reduce((s,d)=> s + d.t2, 0);
+    const sumT3 = lista.reduce((s,d)=> s + d.t3, 0);
+
+    let turnoNombre, turnoVal;
+    if(sumT1 >= sumT2 && sumT1 >= sumT3){ turnoNombre='Turno_1 (08-12)'; turnoVal=sumT1; }
+    else if(sumT2 >= sumT1 && sumT2 >= sumT3){ turnoNombre='Turno_2 (12-16)'; turnoVal=sumT2; }
+    else { turnoNombre='Turno_3 (16-20)'; turnoVal=sumT3; }
+
+    let maxHora = -1, maxIdx = 0;
+    HOURS.forEach((h, idx)=>{
+      const suma = lista.reduce((s,d)=> s + d.horas[h], 0);
+      if(suma > maxHora){ maxHora = suma; maxIdx = idx; }
+    });
+
+    return {
+      kpiTotal, turnoNombre, turnoVal,
+      horaNombre: HOUR_LABELS[maxIdx], horaVal: maxHora,
+      distritos: lista.length
+    };
+  }
+
+  function renderTabla(filas){
+    const body = document.getElementById('reportBody');
+    body.innerHTML = '';
+    let rn = 0;
+
+    filas.forEach(f=>{
+      const tr = document.createElement('tr');
+
+      if(f.tipo === 'dato'){
+        rn++;
+        tr.className = (rn % 2 === 0) ? 'fila-par' : 'fila-impar';
+      } else if(f.tipo === 'subtotal'){
+        tr.className = 'subtotal-' + (['NORTE','ESTE','PROVINCIA'].includes(f.zona) ? f.zona : 'OTRA');
+      } else if(f.tipo === 'total-general'){
+        tr.className = 'total-general';
+      }
+
+      const zonaCell = document.createElement('td');
+      zonaCell.className = 'txt';
+      zonaCell.textContent = f.tipo === 'dato' ? f.zona : '';
+      tr.appendChild(zonaCell);
+
+      const distCell = document.createElement('td');
+      distCell.className = 'txt';
+      distCell.textContent = f.distrito;
+      tr.appendChild(distCell);
+
+      function numCell(val){
+        const td = document.createElement('td');
+        td.textContent = val;
+        if(f.tipo === 'dato') td.className = (val === 0) ? 'cero' : 'valor';
+        return td;
+      }
+
+      tr.appendChild(numCell(f.t1));
+      tr.appendChild(numCell(f.t2));
+      tr.appendChild(numCell(f.t3));
+      tr.appendChild(numCell(f.total));
+      HOURS.forEach(h=> tr.appendChild(numCell(f.horas[h])));
+      const totalCombinado = (f.tipo === 'dato') ? f.totalHoras : (f.total + f.totalHoras);
+      tr.appendChild(numCell(totalCombinado));
+
+      body.appendChild(tr);
+    });
+  }
+
+  function renderKPIs(k){
+    document.getElementById('kpiTotal').textContent = k.kpiTotal.toLocaleString('es-PE');
+    document.getElementById('kpiTurno').textContent = k.turnoNombre + ' (' + k.turnoVal + ' reg.)';
+    document.getElementById('kpiHora').textContent = k.horaNombre + ' (' + k.horaVal + ' reg.)';
+    document.getElementById('kpiDistritos').textContent = k.distritos;
+  }
+
+  // ============================================================
+  // 6b. ESTADO POR TÉCNICO
+  // ============================================================
+  const tecSortState = { key: 'total', dir: -1 };
+  let tecLastPorTecnico = null;
+
+  function construirPorTecnico(rows, limite08){
+    const totalPorEstado = Object.fromEntries(ESTADOS_LIST.map(e=>[e,0]));
+    const porTecnico = {};
+    let granTotal = 0;
+
+    rows.forEach(row=>{
+      const distrito = (row['Distrito'] || '').trim();
+      const hProgra = parseFechaHora(row['H_Progra']);
+      if(!distrito || !hProgra) return;
+
+      let bucketKey = null;
+      let turnoKey = null;
+
+      if(hProgra < limite08){
+        const tk = mapTramo(row['Tramo_Atencio']);
+        if(tk){
+          bucketKey = tk;
+          turnoKey = tk;
+        }
+      } else {
+        const h = hProgra.getHours();
+        if(HOURS.includes(h)) bucketKey = 'H'+h;
+      }
+      if(!bucketKey) return;
+
+      const estado = normalizarEstado(row['Estado']);
+      totalPorEstado[estado]++;
+      granTotal++;
+
+      const tecnicoRaw = (row['Tecnico'] || '').toString().trim();
+      const tecnico = tecnicoRaw || '(SIN TÉCNICO)';
+      if(!porTecnico[tecnico]){
+        porTecnico[tecnico] = {
+          key: tecnico,
+          total: 0,
+          t1: 0, t2: 0, t3: 0,
+          pendiente: 0,
+          finalizado: 0,
+          enCamino: 0,
+          enProceso: 0,
+          otros: 0
+        };
+      }
+      const rec = porTecnico[tecnico];
+      rec.total++;
+
+      if(estado === 'PENDIENTE'){
+        if(turnoKey === 'T1') rec.t1++;
+        else if(turnoKey === 'T2') rec.t2++;
+        else if(turnoKey === 'T3') rec.t3++;
+
+        rec.pendiente++;
+      }
+      else if(estado === 'FINALIZADO') rec.finalizado++;
+      else if(estado === 'EN CAMINO')  rec.enCamino++;
+      else if(estado === 'EN PROCESO') rec.enProceso++;
+      else                             rec.otros++;
+    });
+
+    Object.values(porTecnico).forEach(g => {
+      g.efectividad = g.total ? g.finalizado / g.total : 0;
+      g.productividad = g.total ? (g.finalizado + g.otros) / g.total : 0;
+    });
+
+    return {totalPorEstado, porTecnico, granTotal};
+  }
+
+  function totalesTecnicos(list){
+    const t = {
+      key: 'TOTAL', total:0,
+      t1:0, t2:0, t3:0,
+      pendiente:0,
+      finalizado:0, enCamino:0, enProceso:0, otros:0
+    };
+    list.forEach(g => {
+      t.total += g.total;
+      t.t1 += g.t1;
+      t.t2 += g.t2;
+      t.t3 += g.t3;
+      t.pendiente += g.pendiente;
+      t.finalizado += g.finalizado;
+      t.enCamino += g.enCamino;
+      t.enProceso += g.enProceso;
+      t.otros += g.otros;
+    });
+    t.efectividad = t.total ? t.finalizado / t.total : 0;
+    t.productividad = t.total ? (t.finalizado + t.otros) / t.total : 0;
+    return t;
+  }
+
+  function pct1(x){ return (x*100).toFixed(0) + '%'; }
+  function pctN(x, n){ return (x*100).toFixed(n) + '%'; }
+
+  // ============================================================
+  // Tarjetas de Efectividad / Productividad
+  // ============================================================
+  function renderEfectividadCards(porTecnico, granTotal){
+    const list = Object.values(porTecnico || {});
+    const t = totalesTecnicos(list);
+
+    // 1) Efectividad Finalizados = FINALIZADO / TOTAL
+    const efFin = t.total ? (t.finalizado / t.total) : 0;
+    document.getElementById('efFinalizados').textContent = pctN(efFin, 1);
+    document.getElementById('efFinalizadosSub').textContent =
+      t.finalizado + ' finalizados / ' + t.total + ' asignados';
+
+    // 2) Efectividad Aproximada = (FINALIZADO + EN PROCESO) / TOTAL
+    const efAprox = t.total ? ((t.finalizado + t.enProceso) / t.total) : 0;
+    document.getElementById('efAproximada').textContent = pctN(efAprox, 1);
+    document.getElementById('efAproximadaSub').textContent =
+      (t.finalizado + t.enProceso) + ' (final. + en proc.) / ' + t.total + ' asignados';
+
+    // 3) Productividad Promedio = FINALIZADOS / técnicos activos
+    //    "Técnico activo" = técnico con al menos 1 OT asignada.
+    const tecnicosActivos = list.filter(g => g.total > 0).length;
+    const prodProm = tecnicosActivos > 0 ? (t.finalizado / tecnicosActivos) : 0;
+    document.getElementById('efPromedio').textContent = prodProm.toFixed(1);
+    document.getElementById('efPromedioSub').textContent =
+      'Efectivos por técnico activo (' + tecnicosActivos + ' activo' + (tecnicosActivos === 1 ? '' : 's') + ')';
+
+    // 4) Faltan para Objetivo
+    const objetivo = OBJETIVO_EFECTIVIDAD;
+    let faltan = Math.ceil(objetivo * t.total) - t.finalizado;
+    if (faltan < 0) faltan = 0;
+    document.getElementById('efFaltan').textContent = faltan;
+    const objetivoPct = Math.round(objetivo * 100);
+    document.getElementById('efFaltanSub').textContent =
+      'Meta global: ' + objetivoPct + '% · actual: ' + pctN(efFin, 1) +
+      (faltan > 0 ? ' · faltan ' + faltan + ' efectivas' : ' · meta alcanzada ✅');
+  }
+
+  function renderEstados(rows, limite08){
+    const layout = document.getElementById('estadoLayout');
+    const aviso = document.getElementById('estadoAviso');
+    const content = document.getElementById('estadoContent');
+    layout.style.display = 'block';
+
+    if(!window.__estadoDisponible){
+      aviso.style.display = 'block';
+      aviso.textContent = 'El archivo cargado no trae una columna de Estado (Estado / Status / Situación), así que no se puede mostrar este detalle. Vuelve a cargar el export cuando incluya esa columna — el resto del reporte sigue funcionando igual.';
+      content.style.display = 'none';
+      document.getElementById('estadoInfo').textContent = '';
+      document.getElementById('kpiAvanceCard').style.display = 'none';
+      window.__lastPorTecnico = null;
+      window.__lastEstadosTotales = null;
+      return;
+    }
+    aviso.style.display = 'none';
+    content.style.display = 'block';
+    document.getElementById('estadoInfo').textContent = 'Órdenes agrupadas por técnico asignado, según estado';
+
+    const {totalPorEstado, porTecnico, granTotal} = construirPorTecnico(rows, limite08);
+    window.__lastPorTecnico = porTecnico;
+    window.__lastEstadosTotales = totalPorEstado;
+
+    renderEfectividadCards(porTecnico, granTotal);
+
+    tecLastPorTecnico = porTecnico;
+    renderTecnicosPanel(porTecnico);
+
+    const avanceBar = document.getElementById('avanceBar');
+    const avanceLegend = document.getElementById('avanceLegend');
+    avanceBar.innerHTML = '';
+    avanceLegend.innerHTML = '';
+    ESTADOS_LIST.forEach(e=>{
+      const val = totalPorEstado[e];
+      if(val <= 0) return;
+      const pct = granTotal > 0 ? (val / granTotal * 100) : 0;
+
+      const seg = document.createElement('div');
+      seg.className = 'seg';
+      seg.style.width = pct + '%';
+      seg.style.background = ESTADO_COLORS[e];
+      seg.title = e + ': ' + val + ' (' + pct.toFixed(1) + '%)';
+      avanceBar.appendChild(seg);
+
+      const item = document.createElement('span');
+      item.className = 'item';
+      item.innerHTML = '<span class="dot" style="background:' + ESTADO_COLORS[e] + ';"></span>' + e + ': ' + val + ' (' + pct.toFixed(1) + '%)';
+      avanceLegend.appendChild(item);
+    });
+
+    const kpisWrap = document.getElementById('estadoKpis');
+    kpisWrap.innerHTML = '';
+    ESTADOS_LIST.forEach(e=>{
+      const badge = document.createElement('div');
+      badge.className = 'estado-badge';
+      badge.innerHTML = '<span class="dot" style="background:' + ESTADO_COLORS[e] + ';"></span><b>' + e + ':</b> ' + totalPorEstado[e];
+      kpisWrap.appendChild(badge);
+    });
+
+    const kpiAvanceCard = document.getElementById('kpiAvanceCard');
+    const kpiAvance = document.getElementById('kpiAvance');
+    if(granTotal > 0){
+      const pctFinalizado = (totalPorEstado['FINALIZADO'] / granTotal * 100).toFixed(1);
+      kpiAvance.textContent = pctFinalizado + '% (' + totalPorEstado['FINALIZADO'] + '/' + granTotal + ')';
+      kpiAvanceCard.style.display = '';
+    } else {
+      kpiAvanceCard.style.display = 'none';
+    }
+  }
+
+  function renderTecnicosPanel(porTecnico){
+    const panel = document.getElementById('tecnicosPanel');
+    if (!panel) return;
+
+    const list = Object.values(porTecnico || {});
+    const t = totalesTecnicos(list);
+    const sorted = [...list].sort((a,b) => {
+      const k = tecSortState.key, d = tecSortState.dir;
+      const va = a[k], vb = b[k];
+      if (typeof va === 'string' || typeof vb === 'string'){
+        return String(va).localeCompare(String(vb)) * d;
+      }
+      return (va > vb ? 1 : -1) * d;
+    });
+
+    const objetivoPct = Math.round(OBJETIVO_EFECTIVIDAD * 100);
+    panel.innerHTML = `
+      <h2>Estado por técnico</h2>
+      <div class="panel-sub">${list.length} técnicos · ${t.total} OT en el filtro actual · Objetivo de efectividad: ${objetivoPct}%</div>
+      <div class="tec-barchart">${barChartTecnicos(sorted)}</div>
+      <div class="tec-table-scroll">
+        <table class="tec-table">
+          <thead>
+            <tr>
+              <th data-key="key">TÉCNICO</th>
+              <th data-key="total">ASIG.</th>
+              <th data-key="t1">T1</th>
+              <th data-key="t2">T2</th>
+              <th data-key="t3">T3</th>
+              <th data-key="pendiente">PEND.</th>
+              <th data-key="finalizado">FINAL.</th>
+              <th data-key="enCamino">EN CAMINO</th>
+              <th data-key="enProceso">EN PROCESO</th>
+              <th data-key="otros">OTROS</th>
+              <th data-key="efectividad">EFECT.</th>
+              <th data-key="productividad">PRODUCT.</th>
+              <th data-key="indicador">INDICADOR</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${sorted.map(g => tecRowHtml(g)).join('')}
+            <tr class="total-row">
+              <td>TOTAL</td>
+              <td>${t.total}</td>
+              <td>${t.t1}</td>
+              <td>${t.t2}</td>
+              <td>${t.t3}</td>
+              <td class="${t.pendiente > 0 ? 'celda-pendiente' : ''}">${t.pendiente}</td>
+              <td>${t.finalizado}</td>
+              <td>${t.enCamino}</td>
+              <td>${t.enProceso}</td>
+              <td>${t.otros}</td>
+              <td>${pct1(t.efectividad)}</td>
+              <td>${pct1(t.productividad)}</td>
+              <td>${tecIndicadorHtml(t.efectividad, t.total, t.finalizado)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    panel.querySelectorAll('thead th').forEach(th => {
+      th.addEventListener('click', () => {
+        const key = th.dataset.key;
+        if (tecSortState.key === key) tecSortState.dir *= -1;
+        else { tecSortState.key = key; tecSortState.dir = 1; }
+        renderTecnicosPanel(tecLastPorTecnico || {});
+      });
+    });
+  }
+
+  function barChartTecnicos(list){
+    if (!list.length) return '<div class="tec-barchart-empty">Sin datos para graficar</div>';
+    const top = [...list].sort((a,b)=> b.efectividad - a.efectividad).slice(0,12);
+    return top.map(g => {
+      const widthPct = Math.max(Math.round(g.efectividad * 100), g.efectividad > 0 ? 2 : 0);
+      const cls = g.efectividad >= OBJETIVO_EFECTIVIDAD ? '' : 'bad';
+      return `
+        <div class="tec-bar-row">
+          <div class="tec-bar-label" title="${escapeHtml(g.key)}">${escapeHtml(g.key)}</div>
+          <div class="tec-bar-track"><div class="tec-bar-fill ${cls}" style="width:${widthPct}%"></div></div>
+          <div class="tec-bar-pct">${pct1(g.efectividad)}</div>
+        </div>`;
+    }).join('');
+  }
+
+  function tecRowHtml(g){
+    const clsCamino  = g.enCamino  >= 1 ? 'celda-camino'  : '';
+    const clsProceso = g.enProceso >= 1 ? 'celda-proceso' : '';
+    const clsPend    = g.pendiente > 0  ? 'celda-pendiente' : '';
+
+    return `<tr>
+      <td title="${escapeHtml(g.key)}">${escapeHtml(g.key)}</td>
+      <td>${g.total}</td>
+      <td>${g.t1}</td>
+      <td>${g.t2}</td>
+      <td>${g.t3}</td>
+      <td class="${clsPend}">${g.pendiente}</td>
+      <td>${g.finalizado}</td>
+      <td class="${clsCamino}">${g.enCamino}</td>
+      <td class="${clsProceso}">${g.enProceso}</td>
+      <td>${g.otros}</td>
+      <td>${pct1(g.efectividad)}</td>
+      <td>${pct1(g.productividad)}</td>
+      <td>${tecIndicadorHtml(g.efectividad, g.total, g.finalizado)}</td>
+    </tr>`;
+  }
+
+  function tecIndicadorHtml(efectividad, asignados, finalizado){
+    if (efectividad >= OBJETIVO_EFECTIVIDAD) return '<span class="tec-pill ok">OK</span>';
+    const objetivoCant = Math.ceil(asignados * OBJETIVO_EFECTIVIDAD);
+    const falta = Math.max(objetivoCant - finalizado, 0);
+    return `<span class="tec-pill bad">Falta ${falta} (${pct1(OBJETIVO_EFECTIVIDAD - efectividad)})</span>`;
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // ============================================================
+  // 7. Flujo principal
+  // ============================================================
+  window.__lastRowsAll = null;
+  window.__lastRows = null;
+  window.__lastFilas = null;
+  window.__estadoDisponible = false;
+  window.__lastPorTecnico = null;
+  window.__lastEstadosTotales = null;
+
+  function poblarFiltroNegocio(rows){
+    const sel = document.getElementById('filtroNegocio');
+    const valores = [...new Set(
+      rows.map(r => (r['Negocio'] || '').toString().trim()).filter(Boolean)
+    )].sort((a,b)=> a.localeCompare(b));
+
+    const actual = sel.value;
+    sel.innerHTML = '<option value="">Todos</option>' +
+      valores.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+    sel.value = valores.includes(actual) ? actual : '';
+
+    document.getElementById('filtrosBar').style.display = valores.length ? 'flex' : 'none';
+  }
+
+  function buildReport(rows, estadoDisponible){
+    window.__lastRowsAll = rows;
+    if(typeof estadoDisponible === 'boolean') window.__estadoDisponible = estadoDisponible;
+
+    poblarFiltroNegocio(rows);
+
+    const negocioSel = document.getElementById('filtroNegocio').value;
+    const rowsFiltradas = negocioSel
+      ? rows.filter(r => (r['Negocio'] || '').toString().trim() === negocioSel)
+      : rows;
+
+    window.__lastRows = rowsFiltradas;
+
+    const {lista, limite08, leidos, omitidos} = procesarDatos(rowsFiltradas);
+    const filas = construirFilas(lista);
+    window.__lastFilas = filas;
+    const kpis = calcularKPIs(lista);
+
+    renderTabla(filas);
+    renderKPIs(kpis);
+    renderEstados(rowsFiltradas, limite08);
+
+    const hoy = new Date();
+    const fmt = (d)=> String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+    document.getElementById('refFecha').textContent = fmt(hoy);
+    document.getElementById('refCorte').textContent = '09:00 am';
+
+    document.getElementById('notaPie').textContent =
+      'Reporte generado: ' + hoy.toLocaleString('es-PE') +
+      ' · Registros leídos: ' + leidos + ' · Omitidos (sin distrito o fecha inválida): ' + omitidos +
+      (negocioSel ? ' · Filtro Negocio: "' + negocioSel + '"' : '');
+
+    document.getElementById('pageLayout').style.display = 'flex';
+  }
+
+  document.getElementById('btnExportXlsx').addEventListener('click', ()=>{
+    if(!window.__lastFilas) return;
+    const headers = ["ZONA","DISTRITO","Turno_1","Turno_2","Turno_3","TOTAL",
+      "9AM","10AM","11AM","12PM","1PM","2PM","3PM","4PM","5PM","6PM","TOTAL 9AM+"];
+    const aoa = [headers];
+    window.__lastFilas.forEach(f=>{
+      const totalCombinado = (f.tipo === 'dato') ? f.totalHoras : (f.total + f.totalHoras);
+      aoa.push([
+        f.tipo === 'dato' ? f.zona : '',
+        f.distrito, f.t1, f.t2, f.t3, f.total,
+        ...HOURS.map(h=>f.horas[h]), totalCombinado
+      ]);
+    });
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'ADICIONALES');
+
+    if(window.__lastPorTecnico){
+      const headersTec = ['TECNICO','ASIG.','T1','T2','T3','PEND.','FINAL.','EN CAMINO','EN PROCESO','OTROS','EFECT.','PRODUCT.','INDICADOR'];
+      const aoaTec = [headersTec];
+      Object.values(window.__lastPorTecnico)
+        .sort((a,b)=> a.key.localeCompare(b.key))
+        .forEach(o=>{
+          aoaTec.push([
+            o.key, o.total, o.t1, o.t2, o.t3, o.pendiente,
+            o.finalizado, o.enCamino, o.enProceso, o.otros,
+            +(o.efectividad*100).toFixed(1)+'%', +(o.productividad*100).toFixed(1)+'%',
+            o.efectividad >= OBJETIVO_EFECTIVIDAD ? 'OK' : ('Falta ' + Math.max(Math.ceil(o.total*OBJETIVO_EFECTIVIDAD) - o.finalizado, 0))
+          ]);
+        });
+      const wsTec = XLSX.utils.aoa_to_sheet(aoaTec);
+      XLSX.utils.book_append_sheet(wb, wsTec, 'TECNICOS');
+    }
+
+    const hoy = new Date();
+    const fname = 'ADICIONALES_' + hoy.toISOString().slice(0,10) + '.xlsx';
+    XLSX.writeFile(wb, fname);
+  });
+
+  document.getElementById('btnReset').addEventListener('click', ()=>{
+    document.getElementById('pageLayout').style.display = 'none';
+    document.getElementById('estadoLayout').style.display = 'none';
+    document.getElementById('filtrosBar').style.display = 'none';
+    document.getElementById('filtroNegocio').value = '';
+    window.__estadoDisponible = false;
+    window.__lastRowsAll = null;
+    window.__lastRows = null;
+    window.__lastPorTecnico = null;
+    window.__lastEstadosTotales = null;
+    document.getElementById('csvInput').value = '';
+    document.getElementById('excelInput').value = '';
+    document.getElementById('fileName').textContent = 'Ningún archivo cargado';
+    hideError();
+  });
+
+  document.getElementById('filtroNegocio').addEventListener('change', ()=>{
+    if(window.__lastRowsAll) buildReport(window.__lastRowsAll);
+  });
+  document.getElementById('btnLimpiarFiltro').addEventListener('click', ()=>{
+    document.getElementById('filtroNegocio').value = '';
+    if(window.__lastRowsAll) buildReport(window.__lastRowsAll);
+  });
+
+  // ============================================================
+  // Input editable del OBJETIVO (persistente)
+  // ============================================================
+  const objetivoInput = document.getElementById('efObjetivo');
+  objetivoInput.value = Math.round(OBJETIVO_EFECTIVIDAD * 100);
+
+  objetivoInput.addEventListener('change', ()=>{
+    let v = parseFloat(objetivoInput.value);
+    if(isNaN(v) || v <= 0) v = 65;
+    if(v > 100) v = 100;
+    objetivoInput.value = v;
+    guardarObjetivo(v / 100);
+    if(window.__lastRows) buildReport(window.__lastRowsAll);
+  });
+  objetivoInput.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter'){ e.preventDefault(); objetivoInput.blur(); }
+  });
+
+  function showError(msg){
+    const el = document.getElementById('uploadError');
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+  function hideError(){
+    document.getElementById('uploadError').classList.remove('show');
+  }
+
+  const REQUIRED_COLS = ['Distrito','Provincia','H_Progra','Tramo_Atencio'];
+
+  function handleFile(file){
+    hideError();
+    document.getElementById('fileName').textContent = file.name;
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      try{
+        const {headers, data} = parseCSV(e.target.result, ';');
+        const faltantes = REQUIRED_COLS.filter(c => !headers.includes(c));
+        if(faltantes.length){
+          showError('El CSV no tiene las columnas requeridas: ' + faltantes.join(', ') + '. Verifica que sea el export de la vista AppSheet.');
+          return;
+        }
+        const estadoCol = encontrarColumnaEstadoCSV(headers);
+        const estadoDisponible = !!estadoCol;
+        if(estadoDisponible){
+          data.forEach(r=>{ r['Estado'] = r[estadoCol]; });
+        }
+        const tecnicoCol = encontrarColumnaTecnicoCSV(headers);
+        if(tecnicoCol){
+          data.forEach(r=>{ r['Tecnico'] = r[tecnicoCol]; });
+        }
+        const negocioCol = encontrarColumnaNegocioCSV(headers);
+        if(negocioCol){
+          data.forEach(r=>{ r['Negocio'] = r[negocioCol]; });
+        }
+
+        document.getElementById('detectedCols').textContent =
+          data.length + ' filas leídas del CSV · columnas detectadas correctamente' +
+          (estadoDisponible ? ' · columna de Estado: "' + estadoCol + '"' : '') +
+          (tecnicoCol ? ' · columna de Técnico: "' + tecnicoCol + '"' : '') +
+          (negocioCol ? ' · columna de Negocio: "' + negocioCol + '"' : '');
+
+        buildReport(data, estadoDisponible);
+      }catch(err){
+        showError('No se pudo procesar el archivo: ' + err.message);
+      }
+    };
+    reader.onerror = ()=> showError('No se pudo leer el archivo.');
+    reader.readAsText(file, 'UTF-8');
+  }
+
+  document.getElementById('csvInput').addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    if(file) handleFile(file);
+    e.target.value = '';
+  });
+
+  function handleExcelFile(file){
+    hideError();
+    if (typeof XLSX === 'undefined'){
+      showError('No se pudo cargar la librería de Excel (XLSX). Revisa tu conexión y recarga la página.');
+      return;
+    }
+    document.getElementById('fileName').textContent = 'Leyendo ' + file.name + '…';
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      try{
+        const data = new Uint8Array(e.target.result);
+        const wb = XLSX.read(data, {type:'array', cellDates:true});
+        const sheetName = wb.SheetNames.find(n => n.trim().toUpperCase() === 'BASE_PERUFIBRA') || wb.SheetNames[0];
+        const ws = wb.Sheets[sheetName];
+        const matriz = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:''});
+        const {headers, data: filas} = filasDesdeExcel(matriz);
+        const faltantes = REQUIRED_COLS.filter(c => !headers.includes(c));
+        if(faltantes.length){
+          showError('El Excel no tiene las columnas requeridas: ' + faltantes.join(', ') + '. Verifica que la hoja BASE_PERUFIBRA tenga esas columnas.');
+          return;
+        }
+        const estadoDisponible = headers.includes('Estado');
+        const tecnicoDisponible = headers.includes('Tecnico');
+        const negocioDisponible = headers.includes('Negocio');
+        document.getElementById('fileName').textContent = `${file.name} (hoja "${sheetName}")`;
+        document.getElementById('detectedCols').textContent =
+          filas.length + ' filas leídas del Excel · columnas detectadas correctamente' +
+          (estadoDisponible ? ' · columna de Estado detectada' : '') +
+          (tecnicoDisponible ? ' · columna de Técnico detectada' : '') +
+          (negocioDisponible ? ' · columna de Negocio detectada' : '');
+        buildReport(filas, estadoDisponible);
+      }catch(err){
+        showError('No se pudo procesar el archivo: ' + err.message);
+      }
+    };
+    reader.onerror = ()=> showError('No se pudo leer el archivo.');
+    reader.readAsArrayBuffer(file);
+  }
+
+  document.getElementById('excelInput').addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    if(file) handleExcelFile(file);
+    e.target.value = '';
+  });
+
+  const uploadCard = document.getElementById('uploadCard');
+  ['dragenter','dragover'].forEach(evt=>{
+    uploadCard.addEventListener(evt, (e)=>{
+      e.preventDefault(); e.stopPropagation();
+      uploadCard.classList.add('dragover');
+    });
+  });
+  ['dragleave','drop'].forEach(evt=>{
+    uploadCard.addEventListener(evt, (e)=>{
+      e.preventDefault(); e.stopPropagation();
+      uploadCard.classList.remove('dragover');
+    });
+  });
+  uploadCard.addEventListener('drop', (e)=>{
+    const file = e.dataTransfer.files[0];
+    if(!file) return;
+    if(/\.(xlsx|xls)$/i.test(file.name)) handleExcelFile(file);
+    else handleFile(file);
+  });
+
+})();
+</script>
+
+<script>
+(function(){
+  var CSV_ID = 'csvInput', XLS_ID = 'excelInput';
+  var recibiendo = false;
+  function esArchivoValido(f){ return f && /\.(csv|xlsx|xls)$/i.test(f.name); }
+  function avisarAlPanel(f){
+    if (recibiendo || !esArchivoValido(f) || window.parent === window) return;
+    try{ window.parent.postMessage({ type: 'pf-archivo-cargado', file: f }, '*'); }catch(err){}
+  }
+  document.addEventListener('change', function(e){
+    var t = e.target;
+    if (t && (t.id === CSV_ID || t.id === XLS_ID) && t.files && t.files[0]) avisarAlPanel(t.files[0]);
+  }, true);
+  document.addEventListener('drop', function(e){
+    var fs = e.dataTransfer && e.dataTransfer.files;
+    if (fs && fs[0]) avisarAlPanel(fs[0]);
+  }, true);
+
+  window.addEventListener('message', function(e){
+    if (e.source !== window.parent || !e.data) return;
+    if (e.data.type === 'pf-cargar-archivo' && e.data.file){
+      var f = e.data.file;
+      var input = document.getElementById(/\.csv$/i.test(f.name) ? CSV_ID : XLS_ID);
+      if (!input) return;
+      recibiendo = true;
+      try{
+        Object.defineProperty(input, 'files', { value: [f], configurable: true });
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        window.parent.postMessage({ type: 'pf-ack' }, '*');
+      }catch(err){
+        console.error('No se pudo cargar el archivo desde el panel:', err);
+      }finally{
+        delete input.files;
+        recibiendo = false;
+      }
+    } else if (e.data.type === 'pf-mostrar'){
+      try{ if (typeof chartInstance !== 'undefined' && chartInstance) chartInstance.resize(); }catch(err){}
+      window.dispatchEvent(new Event('resize'));
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
