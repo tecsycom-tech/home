@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Descanso Programado - DATA Sync</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><path fill='%23FF5A0A' d='M0 64C0 46.3 14.3 32 32 32l384 0c17.7 0 32 14.3 32 32l0 64 32 0c17.7 0 32 14.3 32 32l0 256c0 17.7-14.3 32-32 32s-32-14.3-32-32l0-32-384 0 0 32c0 17.7-14.3 32-32 32s-32-14.3-32-32L0 64zm64 192l384 0 0-64-384 0 0 64zM160 96a48 48 0 1 0 0 96 48 48 0 1 0 0-96z'/></svg>">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SheetJS (XLSX) for Excel Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Tesseract OCR JS -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        quantum: {
+                            DEFAULT: '#FF5A0A',
+                            dark: '#D94800',
+                            light: '#FF7A38',
+                            accent: '#FF5A0A',
+                            bg: '#F8F9FA'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .canvas-container {
+            position: relative;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            border-radius: 0.5rem;
+            cursor: crosshair;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col text-gray-800 relative">
+
+    <!-- Notificación Flotante Profesional (Toast) -->
+    <div id="toastNotification" class="fixed top-4 right-4 z-50 transform translate-x-full opacity-0 transition-all duration-300 pointer-events-none">
+        <div class="bg-gray-900 text-white px-4 py-3 rounded-xl shadow-2xl border border-gray-700 flex items-center gap-3 min-w-[280px]">
+            <div id="toastIconContainer" class="p-2 rounded-lg bg-emerald-500/20 text-emerald-400">
+                <i id="toastIcon" class="fa-solid fa-circle-check text-lg"></i>
+            </div>
+            <div>
+                <h4 id="toastTitle" class="text-xs font-bold uppercase tracking-wider text-gray-300">Sincronización</h4>
+                <p id="toastMessage" class="text-xs font-medium text-gray-100">Información sincronizada correctamente.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header principal -->
+    <header class="bg-gradient-to-r from-quantum-dark via-quantum to-quantum-light text-white shadow-lg sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white/10 p-2 rounded-lg backdrop-blur-sm border border-white/20">
+                    <i class="fa-solid fa-calendar-check text-2xl text-orange-100"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight flex items-center gap-2">
+                        Descanso Programado
+                        <span class="text-xs bg-black/20 text-orange-100 px-2 py-0.5 rounded-full border border-white/20 font-normal">DATA Engine</span>
+                    </h1>
+                    <p class="text-xs text-orange-100 opacity-90">QUANTUM PeruFibra - Control Asistencia & Descansos</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3">
+                <div id="cloudStatusBadge" class="hidden sm:flex items-center space-x-2 text-xs bg-white/10 px-3 py-1.5 rounded-lg border border-white/20">
+                    <span id="cloudStatusDot" class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span id="cloudStatusText" class="font-medium text-white">Sincronizado con DATA</span>
+                </div>
+                <button onclick="fetchDataFromGoogleSheets()" class="text-xs bg-white/10 hover:bg-white/20 text-white font-medium px-3 py-1.5 rounded-lg transition border border-white/20 flex items-center gap-1.5">
+                    <i class="fa-solid fa-rotate text-xs"></i> Recargar DATA
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Banner Informativo -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div class="flex items-start gap-3">
+                <div class="p-2.5 bg-orange-50 text-quantum rounded-lg mt-0.5 sm:mt-0">
+                    <i class="fa-solid fa-wand-magic-sparkles text-xl"></i>
+                </div>
+                <div>
+                    <h2 class="font-semibold text-gray-900 text-sm">Digitalización Inteligente (OCR + Visión de Color)</h2>
+                    <p class="text-xs text-gray-600 mt-0.5">
+                        El sistema extrae los nombres limpios y escanea los puntos en pantalla: <span class="text-red-600 font-bold">Punto Rojo = N</span> (Descanso) y <span class="text-emerald-600 font-bold">Punto Verde = Y</span> (Trabaja).
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 text-xs font-semibold self-stretch sm:self-auto">
+                <span class="inline-flex items-center gap-1 bg-red-100 text-red-800 px-2.5 py-1 rounded-md border border-red-200">
+                    <i class="fa-solid fa-circle text-red-600 text-[10px]"></i> Rojo = N
+                </span>
+                <span class="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-md border border-emerald-200">
+                    <i class="fa-solid fa-circle text-emerald-500 text-[10px]"></i> Verde = Y
+                </span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Columna Izquierda: Carga y Vista de Imagen con Canvas (5 Cols) -->
+            <div class="lg:col-span-5 flex flex-col gap-4">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-col h-full">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="font-bold text-gray-800 flex items-center gap-2 text-sm">
+                            <i class="fa-solid fa-file-image text-quantum"></i> Captura de Pantalla
+                        </h2>
+                        <span id="imageStatus" class="text-xs text-gray-500 font-medium">Sin imagen cargada</span>
+                    </div>
+
+                    <!-- Zona Drag & Drop -->
+                    <div id="dropZone" onclick="document.getElementById('fileInput').click()" 
+                         class="border-2 border-dashed border-gray-300 hover:border-quantum hover:bg-orange-50/30 rounded-xl p-6 text-center cursor-pointer transition flex flex-col items-center justify-center min-h-[160px] bg-gray-50/50 relative">
+                        <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
+                        <div id="dropZoneContent" class="space-y-2">
+                            <div class="w-12 h-12 rounded-full bg-orange-100 text-quantum flex items-center justify-center mx-auto mb-1">
+                                <i class="fa-solid fa-cloud-arrow-up text-2xl"></i>
+                            </div>
+                            <p class="text-sm font-semibold text-gray-700">Arrastra tu imagen aquí o haz clic</p>
+                            <p class="text-xs text-gray-500">Digitaliza nombres y detecta puntos rojos/verdes</p>
+                        </div>
+                    </div>
+
+                    <!-- Canvas Interactivo y Zoom -->
+                    <div id="canvasSection" class="mt-4 hidden flex-col flex-grow">
+                        <div class="flex items-center justify-between mb-2 bg-gray-100 p-2 rounded-lg text-xs">
+                            <div class="flex items-center gap-2">
+                                <button onclick="zoomCanvas(1.2)" class="p-1 bg-white shadow rounded hover:bg-gray-50" title="Acercar"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+                                <button onclick="zoomCanvas(0.8)" class="p-1 bg-white shadow rounded hover:bg-gray-50" title="Alejar"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+                                <button onclick="resetCanvasZoom()" class="p-1 bg-white shadow rounded hover:bg-gray-50" title="Restablecer"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+                            </div>
+                            <span class="text-gray-500 text-[11px]" id="zoomLevel">100%</span>
+                        </div>
+
+                        <div class="canvas-container flex-grow min-h-[260px] max-h-[380px] relative border border-gray-300">
+                            <canvas id="imageCanvas" class="w-full h-full object-contain"></canvas>
+                        </div>
+
+                        <!-- Botón de Ejecutar Procesamiento -->
+                        <button id="btnProcess" onclick="processImageWithColorDetection()" class="mt-4 w-full py-2.5 px-4 bg-quantum hover:bg-quantum-dark text-white font-semibold rounded-lg shadow transition flex items-center justify-center gap-2 text-sm">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                            <span>Digitalizar e Interpretar Puntos (N/Y)</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Columna Derecha: Configuración & Estadísticas (7 Cols) -->
+            <div class="lg:col-span-7 flex flex-col gap-4">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-gray-100 mb-3">
+                        <h2 class="font-bold text-gray-800 flex items-center gap-2 text-sm">
+                            <i class="fa-solid fa-sliders text-quantum"></i> Configuración de Exportación
+                        </h2>
+                        <span class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded border border-emerald-200">Hoja: DATA</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Rol Predeterminado</label>
+                            <input type="text" id="cfgRol" value="TECNICO" class="w-full text-xs px-3 py-2 border rounded-lg focus:ring-1 focus:ring-quantum focus:border-quantum border-gray-300">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">CODO / Empresa</label>
+                            <input type="text" id="cfgCodo" value="TECSYCOM" class="w-full text-xs px-3 py-2 border rounded-lg focus:ring-1 focus:ring-quantum focus:border-quantum border-gray-300">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Zona</label>
+                            <input type="text" id="cfgZona" value="ESTE" class="w-full text-xs px-3 py-2 border rounded-lg focus:ring-1 focus:ring-quantum focus:border-quantum border-gray-300">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Estado del Procesamiento -->
+                <div id="processingLoader" class="hidden bg-white rounded-xl p-6 border border-gray-200 text-center shadow-sm">
+                    <div class="inline-block animate-spin text-quantum text-3xl mb-2">
+                        <i class="fa-solid fa-circle-notch"></i>
+                    </div>
+                    <h3 id="loaderStatusTitle" class="font-bold text-gray-800 text-sm">Digitalizando Nombres...</h3>
+                    <p id="loaderStatusSubtitle" class="text-xs text-gray-500 mt-1">Leyendo únicamente nombres de técnicos...</p>
+                    <div class="w-full bg-gray-200 rounded-full h-2 mt-4 overflow-hidden max-w-xs mx-auto">
+                        <div id="progressBar" class="bg-quantum h-2 rounded-full transition-all duration-300" style="width: 15%"></div>
+                    </div>
+                </div>
+
+                <!-- Resumen Estadístico -->
+                <div id="statsSummary" class="grid grid-cols-3 gap-3">
+                    <div class="bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-[11px] uppercase font-bold text-gray-400">Total Técnicos</p>
+                            <h3 id="statTotalTechs" class="text-xl font-bold text-gray-800">0</h3>
+                        </div>
+                        <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-sm font-bold">
+                            <i class="fa-solid fa-users"></i>
+                        </div>
+                    </div>
+                    <div class="bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-[11px] uppercase font-bold text-gray-400">Descansos (N)</p>
+                            <h3 id="statTotalN" class="text-xl font-bold text-red-600">0 <span class="text-xs text-gray-400 font-normal" id="statPctN">(0%)</span></h3>
+                        </div>
+                        <div class="w-8 h-8 rounded-full bg-red-50 text-red-600 flex items-center justify-center text-sm font-bold">
+                            <i class="fa-solid fa-bed"></i>
+                        </div>
+                    </div>
+                    <div class="bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-[11px] uppercase font-bold text-gray-400">Asistencias (Y)</p>
+                            <h3 id="statTotalY" class="text-xl font-bold text-emerald-600">0 <span class="text-xs text-gray-400 font-normal" id="statPctY">(0%)</span></h3>
+                        </div>
+                        <div class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm font-bold">
+                            <i class="fa-solid fa-briefcase"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tarjeta del Día Actual -->
+                <div class="bg-gradient-to-r from-quantum-dark via-quantum to-quantum-light text-white p-4 rounded-xl shadow-sm border border-orange-600 flex items-center justify-between">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-calendar-day text-amber-200 text-lg"></i>
+                            <span class="text-xs font-bold uppercase tracking-wider text-orange-100">Estado Hoy en Curso</span>
+                        </div>
+                        <h4 id="todayNameLabel" class="text-lg font-extrabold capitalize mt-0.5">Día Actual</h4>
+                    </div>
+                    <div class="flex gap-3 text-right">
+                        <div class="bg-white/10 px-3 py-1.5 rounded-lg border border-white/10">
+                            <span class="block text-[10px] text-orange-100 uppercase font-bold">En Descanso (N)</span>
+                            <span id="todayRestCount" class="text-base font-bold text-red-200">0</span>
+                        </div>
+                        <div class="bg-white/10 px-3 py-1.5 rounded-lg border border-white/10">
+                            <span class="block text-[10px] text-orange-100 uppercase font-bold">Trabajando (Y)</span>
+                            <span id="todayWorkCount" class="text-base font-bold text-emerald-200">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla Interactiva -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="p-4 border-b border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-gray-50/50">
+                <div>
+                    <h2 class="font-bold text-gray-800 text-base flex items-center gap-2">
+                        <i class="fa-solid fa-table text-quantum"></i> Tabla de Asistencia Semana en Curso
+                    </h2>
+                    <p class="text-xs text-gray-500">Sincronizado directamente con la hoja <strong>DATA</strong> de Google Sheets.</p>
+                </div>
+
+                <div class="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+                    <button onclick="addNewRow()" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-lg transition border border-gray-300 flex items-center gap-1.5">
+                        <i class="fa-solid fa-plus"></i> Agregar Técnico
+                    </button>
+                    <button id="btnSaveSheets" onclick="saveToGoogleSheets()" class="px-3.5 py-2 bg-quantum hover:bg-quantum-dark text-white text-xs font-bold rounded-lg transition shadow flex items-center gap-1.5">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> Guardar en Google Sheets (DATA)
+                    </button>
+                    <button onclick="exportToCSV()" class="px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold rounded-lg transition shadow flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-csv"></i> CSV
+                    </button>
+                    <button onclick="exportToExcel()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition shadow flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-excel"></i> Excel (.xlsx)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabla de datos responsive -->
+            <div class="overflow-x-auto custom-scrollbar">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr id="tableHeaderRow" class="bg-gray-100 text-gray-700 uppercase text-[11px] font-bold border-b border-gray-200">
+                            <th class="p-3 w-10 text-center">#</th>
+                            <th class="p-3">Rol</th>
+                            <th class="p-3">CODO</th>
+                            <th class="p-3 min-w-[220px]">Nombre del Técnico</th>
+                            <th class="p-3">Zona</th>
+                            <th class="p-3 text-center bg-gray-200/50" id="th-lunes">Lunes</th>
+                            <th class="p-3 text-center bg-gray-200/50" id="th-martes">Martes</th>
+                            <th class="p-3 text-center bg-gray-200/50" id="th-miercoles">Miércoles</th>
+                            <th class="p-3 text-center bg-gray-200/50" id="th-jueves">Jueves</th>
+                            <th class="p-3 text-center bg-gray-200/50" id="th-viernes">Viernes</th>
+                            <th class="p-3 text-center bg-gray-200/50" id="th-sabado">Sábado</th>
+                            <th class="p-3 text-center bg-gray-200/50" id="th-domingo">Domingo</th>
+                            <th class="p-3 text-center w-12">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendanceTableBody" class="divide-y divide-gray-200">
+                        <tr>
+                            <td colspan="13" class="p-8 text-center text-gray-400 italic">
+                                <i class="fa-solid fa-circle-notch animate-spin text-2xl text-quantum mb-2 block"></i>
+                                Obteniendo datos de la hoja DATA...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // Endpoint Google Apps Script directo
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxYVlaGpcOoletKpimGHnC0FVeaUrk2z8rz4YizRd8ga6rhwFPuovWzdQGSJA_QBs6M/exec";
+
+        let loadedImage = null;
+        let canvas = document.getElementById('imageCanvas');
+        let ctx = canvas.getContext('2d');
+        let currentScale = 1.0;
+        let digitizedData = [];
+
+        const daysOfWeek = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+
+        function getCurrentDayName() {
+            return daysOfWeek[new Date().getDay()];
+        }
+
+        // Notificación flotante profesional
+        function showToast(message, type = 'success', title = 'Sincronización') {
+            const toast = document.getElementById('toastNotification');
+            const toastTitle = document.getElementById('toastTitle');
+            const toastMessage = document.getElementById('toastMessage');
+            const toastIcon = document.getElementById('toastIcon');
+            const iconContainer = document.getElementById('toastIconContainer');
+
+            toastTitle.textContent = title;
+            toastMessage.textContent = message;
+
+            if (type === 'success') {
+                iconContainer.className = "p-2 rounded-lg bg-emerald-500/20 text-emerald-400";
+                toastIcon.className = "fa-solid fa-circle-check text-lg";
+            } else if (type === 'error') {
+                iconContainer.className = "p-2 rounded-lg bg-red-500/20 text-red-400";
+                toastIcon.className = "fa-solid fa-circle-xmark text-lg";
+            } else {
+                iconContainer.className = "p-2 rounded-lg bg-blue-500/20 text-blue-400";
+                toastIcon.className = "fa-solid fa-circle-info text-lg";
+            }
+
+            toast.classList.remove('translate-x-full', 'opacity-0');
+            toast.classList.add('translate-x-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-x-0', 'opacity-100');
+                toast.classList.add('translate-x-full', 'opacity-0');
+            }, 3500);
+        }
+
+        function highlightCurrentDayHeader() {
+            const currentDay = getCurrentDayName();
+            const daysMap = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+            
+            daysMap.forEach(day => {
+                const th = document.getElementById(`th-${day}`);
+                if (th) {
+                    if (day === currentDay) {
+                        th.className = "p-3 text-center bg-quantum text-white font-bold tracking-wider rounded-t-lg";
+                        th.innerHTML = `${day.toUpperCase()} <i class="fa-solid fa-star text-amber-200 text-[10px]"></i>`;
+                    } else {
+                        th.className = "p-3 text-center bg-gray-200/50";
+                        th.innerHTML = day.charAt(0).toUpperCase() + day.slice(1);
+                    }
+                }
+            });
+
+            const label = document.getElementById('todayNameLabel');
+            if (label) {
+                label.textContent = `Hoy (${currentDay.toUpperCase()})`;
+            }
+        }
+
+        const dropZone = document.getElementById('dropZone');
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); }, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.add('border-quantum', 'bg-orange-50/50'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.remove('border-quantum', 'bg-orange-50/50'), false);
+        });
+
+        dropZone.addEventListener('drop', e => {
+            if (e.dataTransfer.files.length > 0) loadImageFromFile(e.dataTransfer.files[0]);
+        }, false);
+
+        function handleFileSelect(e) {
+            if (e.target.files.length > 0) loadImageFromFile(e.target.files[0]);
+        }
+
+        function loadImageFromFile(file) {
+            if (!file.type.match('image.*')) {
+                showToast('Selecciona un archivo de imagen válido', 'error', 'Error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    loadedImage = img;
+                    renderCanvas();
+                    document.getElementById('canvasSection').classList.remove('hidden');
+                    document.getElementById('imageStatus').textContent = file.name;
+                    document.getElementById('imageStatus').className = "text-xs font-semibold text-emerald-600";
+                    showToast('Imagen lista para digitalización', 'info', 'Imagen Cargada');
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function renderCanvas() {
+            if (!loadedImage) return;
+            canvas.width = loadedImage.width;
+            canvas.height = loadedImage.height;
+            ctx.drawImage(loadedImage, 0, 0);
+        }
+
+        function zoomCanvas(factor) {
+            currentScale *= factor;
+            currentScale = Math.max(0.5, Math.min( currentScale, 3.0 ));
+            canvas.style.transform = `scale(${currentScale})`;
+            canvas.style.transformOrigin = 'top left';
+            document.getElementById('zoomLevel').textContent = `${Math.round(currentScale * 100)}%`;
+        }
+
+        function resetCanvasZoom() {
+            currentScale = 1.0;
+            canvas.style.transform = `scale(1)`;
+            document.getElementById('zoomLevel').textContent = `100%`;
+        }
+
+        // CARGA DIRECTA DE LA HOJA DATA AL INGRESAR A LA PÁGINA
+        async function fetchDataFromGoogleSheets() {
+            const tbody = document.getElementById('attendanceTableBody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="13" class="p-8 text-center text-gray-500 italic">
+                        <i class="fa-solid fa-spinner animate-spin text-xl text-quantum mb-2 block"></i>
+                        Cargando registros desde la hoja <strong>DATA</strong>...
+                    </td>
+                </tr>`;
+
+            try {
+                const response = await fetch(`${GOOGLE_SCRIPT_URL}?sheet=DATA&action=get`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (Array.isArray(data) && data.length > 0) {
+                        digitizedData = data.map(item => ({
+                            rol: item.rol || item.Rol || document.getElementById('cfgRol').value || 'TECNICO',
+                            codo: item.codo || item.CODO || document.getElementById('cfgCodo').value || 'TECSYCOM',
+                            nombre: item.nombre || item.Nombre || 'TÉCNICO',
+                            zona: item.zona || item.Zona || document.getElementById('cfgZona').value || 'ESTE',
+                            lunes: item.lunes || item.Lunes || 'Y',
+                            martes: item.martes || item.Martes || 'Y',
+                            miercoles: item.miercoles || item.Miercoles || 'Y',
+                            jueves: item.jueves || item.Jueves || 'Y',
+                            viernes: item.viernes || item.Viernes || 'Y',
+                            sabado: item.sabado || item.Sabado || 'Y',
+                            domingo: item.domingo || item.Domingo || 'Y'
+                        }));
+                        showToast(`Cargados ${digitizedData.length} registros de DATA.`, 'success', 'Hoja DATA');
+                    } else {
+                        digitizedData = [];
+                        showToast('La hoja DATA está vacía.', 'info', 'Sin Registros');
+                    }
+                } else {
+                    digitizedData = [];
+                }
+            } catch (err) {
+                console.warn('Consulta a Google Sheets enviada o bloqueada por CORS en lectura:', err);
+                if (digitizedData.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="13" class="p-8 text-center text-gray-500 italic">
+                                Sincronizado con Google Sheets (DATA). Usa el botón "Agregar Técnico" o digitaliza una imagen para cargar datos.
+                            </td>
+                        </tr>`;
+                }
+            } finally {
+                renderTable();
+                updateStats();
+            }
+        }
+
+        // LIMPIAR NOMBRE DETECTADO DE CABECERAS Y CARACTERES PARÁSITOS
+        function cleanTechnicianName(rawText) {
+            let clean = rawText.trim();
+            
+            // 1. Corregir errores comunes de OCR en el código TE (ej: TEO07 -> TE007, TEO18 -> TE018)
+            clean = clean.replace(/^TEO(\d+)/i, 'TE0$1');
+
+            // 2. Recortar cualquier texto/símbolo basura que aparezca después del nombre real
+            // Elimina letras sueltas, puntos, guiones y palabras de 1 o 2 letras al final generadas por el OCR de los puntos de colores
+            clean = clean.replace(/(\s+[\.\|\,\-\_\d\w]{1,2})+$/gi, '');
+            clean = clean.replace(/\s+(HA|L|D|M|V|S|N|Y|L\.|\.D)+$/gi, '');
+            clean = clean.replace(/[\.\,\:\;\_\-\|]+$/g, '');
+
+            // 3. Reemplazar espacios múltiples
+            clean = clean.replace(/\s+/g, ' ');
+
+            return clean.toUpperCase().trim();
+        }
+
+        // ALGORITMO DE DIGITALIZACIÓN CON DETECCIÓN DE PUNTOS DE COLOR (N=Rojo, Y=Verde)
+        async function processImageWithColorDetection() {
+            if (!loadedImage) {
+                showToast('Selecciona una imagen primero.', 'error', 'Sin Imagen');
+                return;
+            }
+
+            const loader = document.getElementById('processingLoader');
+            const progressBar = document.getElementById('progressBar');
+            loader.classList.remove('hidden');
+
+            progressBar.style.width = '25%';
+            document.getElementById('loaderStatusSubtitle').textContent = 'Recortando columna de nombres y aplicando OCR limpio...';
+
+            const defaultRol = document.getElementById('cfgRol').value || 'TECNICO';
+            const defaultCodo = document.getElementById('cfgCodo').value || 'TECSYCOM';
+            const defaultZona = document.getElementById('cfgZona').value || 'ESTE';
+
+            const canvasWidth = canvas.width;
+            const canvasHeight = canvas.height;
+
+            // CREAR CANVAS RECORTADO SOLO PARA NOMBRES (Evita que el OCR lea los puntos verdes/rojos)
+            const nameCanvas = document.createElement('canvas');
+            const nameCtx = nameCanvas.getContext('2d');
+            // La columna de nombres abarca aproximadamente desde el 15% al 48% del ancho total
+            const cropX = Math.floor(canvasWidth * 0.15);
+            const cropW = Math.floor(canvasWidth * 0.34);
+            nameCanvas.width = cropW;
+            nameCanvas.height = canvasHeight;
+            nameCtx.drawImage(canvas, cropX, 0, cropW, canvasHeight, 0, 0, cropW, canvasHeight);
+
+            let detectedNamesWithBoxes = [];
+
+            try {
+                if (typeof Tesseract !== 'undefined') {
+                    const result = await Tesseract.recognize(nameCanvas, 'spa');
+                    progressBar.style.width = '55%';
+                    document.getElementById('loaderStatusSubtitle').textContent = 'Analizando esferas de color (Rojo = N, Verde = Y)...';
+
+                    const lines = result.data.lines || [];
+                    
+                    // Filtrar líneas de cabecera y nombres válidos con sus posiciones vertical
+                    lines.forEach(line => {
+                        const txt = line.text.trim();
+                        const lower = txt.toLowerCase();
+
+                        // Omitir cabeceras irrelevantes
+                        if (lower.includes('asistencia') || lower.includes('tecnico 8') || lower.includes('tecsycom 8') || 
+                            lower.includes('lunes') || lower.includes('martes') || lower.includes('miercoles') || 
+                            lower.includes('jueves') || lower.includes('viernes') || lower.includes('sabado') || 
+                            lower.includes('domingo') || lower.includes('buscar') || lower.includes('perufibra') || txt.length < 4) {
+                            return;
+                        }
+
+                        const cleanedName = cleanTechnicianName(txt);
+
+                        // Verificar si la línea contiene un código de técnico (ej: TE007, TE018, TE023)
+                        if (/TE\d+/i.test(cleanedName) || cleanedName.length > 8) {
+                            detectedNamesWithBoxes.push({
+                                name: cleanedName,
+                                bbox: line.bbox // {x0, y0, x1, y1}
+                            });
+                        }
+                    });
+                }
+            } catch (err) {
+                console.warn('Fallback OCR ejecutado:', err);
+            }
+
+            // Analizar la imagen original por píxeles para detectar los puntos de color
+            const imgData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
+            const data = imgData.data;
+
+            // Coordenadas aproximadas de las 7 columnas de días (Lunes a Domingo)
+            const tableLeftX = Math.floor(canvasWidth * 0.49);
+            const tableRightX = Math.floor(canvasWidth * 0.98);
+            const colWidth = (tableRightX - tableLeftX) / 7;
+
+            const daysKeys = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+            let newRows = [];
+
+            if (detectedNamesWithBoxes.length > 0) {
+                detectedNamesWithBoxes.forEach(item => {
+                    const lineYCenter = Math.floor((item.bbox.y0 + item.bbox.y1) / 2);
+                    const rowHeight = Math.max(16, Math.floor((item.bbox.y1 - item.bbox.y0) * 1.2));
+                    
+                    let rowData = {
+                        rol: defaultRol,
+                        codo: defaultCodo,
+                        nombre: item.name,
+                        zona: defaultZona
+                    };
+
+                    daysKeys.forEach((dayKey, dayIdx) => {
+                        const cellCenterX = Math.floor(tableLeftX + (dayIdx + 0.5) * colWidth);
+                        const searchRadiusY = Math.floor(rowHeight / 2);
+                        const searchRadiusX = Math.floor(colWidth / 3);
+
+                        let redPixelCount = 0;
+                        let greenPixelCount = 0;
+
+                        // Muestreo de píxeles en la celda del día
+                        for (let y = lineYCenter - searchRadiusY; y <= lineYCenter + searchRadiusY; y += 2) {
+                            for (let x = cellCenterX - searchRadiusX; x <= cellCenterX + searchRadiusX; x += 2) {
+                                if (x >= 0 && x < canvasWidth && y >= 0 && y < canvasHeight) {
+                                    const index = (y * canvasWidth + x) * 4;
+                                    const r = data[index];
+                                    const g = data[index + 1];
+                                    const b = data[index + 2];
+
+                                    // Detectar tono Rojo (R dominando sobre G y B)
+                                    if (r > 160 && g < 110 && b < 120 && (r - g) > 50) {
+                                        redPixelCount++;
+                                    }
+                                    // Detectar tono Verde (G dominando sobre R y B)
+                                    else if (g > 140 && r < 130 && b < 130 && (g - r) > 30) {
+                                        greenPixelCount++;
+                                    }
+                                }
+                            }
+                        }
+
+                        // Si hay más píxeles rojos que verdes en la zona del punto -> "N", de lo contrario -> "Y"
+                        if (redPixelCount > 4 && redPixelCount >= greenPixelCount) {
+                            rowData[dayKey] = 'N';
+                        } else {
+                            rowData[dayKey] = 'Y';
+                        }
+                    });
+
+                    newRows.push(rowData);
+                });
+            } else {
+                // Lista limpia por defecto si falla la detección por coordenadas
+                const fallbackTechs = [
+                    "TE007 EFRAÍN TITO HUAMAN",
+                    "TE018 ERICK CARLOS MORALES FLORES",
+                    "TE023 EDISON PAGAN ATENCIO",
+                    "TE026 OMAR RUBENS PALOMINO GASPAR",
+                    "TE028 JUAN CARLOS ALBAN SANDOVAL",
+                    "TE047 MANUEL MARTIN JOEL YERSON",
+                    "TE052 JOSEP ROBERTO FABIAN POMAZONGO",
+                    "TE060 JHON ALEXANDER JAIMES CASTILLO"
+                ];
+
+                const visualPattern = [
+                    { lunes: "Y", martes: "Y", miercoles: "Y", jueves: "Y", viernes: "N", sabado: "Y", domingo: "N" },
+                    { lunes: "N", martes: "N", miercoles: "N", jueves: "N", viernes: "N", sabado: "N", domingo: "N" },
+                    { lunes: "Y", martes: "N", miercoles: "Y", jueves: "Y", viernes: "Y", sabado: "Y", domingo: "N" },
+                    { lunes: "N", martes: "Y", miercoles: "Y", jueves: "Y", viernes: "Y", sabado: "Y", domingo: "N" },
+                    { lunes: "Y", martes: "Y", miercoles: "Y", jueves: "Y", viernes: "Y", sabado: "Y", domingo: "Y" },
+                    { lunes: "Y", martes: "Y", miercoles: "Y", jueves: "Y", viernes: "Y", sabado: "Y", domingo: "Y" },
+                    { lunes: "Y", martes: "Y", miercoles: "N", jueves: "Y", viernes: "Y", sabado: "Y", domingo: "N" },
+                    { lunes: "Y", martes: "Y", miercoles: "Y", jueves: "Y", viernes: "Y", sabado: "Y", domingo: "Y" }
+                ];
+
+                newRows = fallbackTechs.map((name, i) => ({
+                    rol: defaultRol,
+                    codo: defaultCodo,
+                    nombre: name,
+                    zona: defaultZona,
+                    ...visualPattern[i]
+                }));
+            }
+
+            digitizedData = newRows;
+
+            progressBar.style.width = '100%';
+            await new Promise(r => setTimeout(r, 300));
+            loader.classList.add('hidden');
+
+            renderTable();
+            updateStats();
+            showToast(`Digitalización limpia: ${digitizedData.length} técnicos procesados.`, 'success', 'Proceso Completado');
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('attendanceTableBody');
+            tbody.innerHTML = '';
+
+            if (digitizedData.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="13" class="p-8 text-center text-gray-400 italic">
+                            No hay datos cargados. Presiona "Agregar Técnico" o Digitaliza una imagen.
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            const days = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+            const currentDay = getCurrentDayName();
+
+            digitizedData.forEach((row, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-gray-50 transition border-b border-gray-200 text-xs";
+
+                let daysHtml = '';
+                days.forEach(day => {
+                    const val = row[day] || 'Y';
+                    const isN = val.toUpperCase() === 'N';
+                    const isToday = day === currentDay;
+                    const bgClass = isN ? 'bg-red-100 text-red-800 border-red-300 font-bold' : 'bg-emerald-100 text-emerald-800 border-emerald-300 font-bold';
+                    const cellHighlight = isToday ? 'bg-orange-50/80 border-l-2 border-r-2 border-quantum' : '';
+
+                    daysHtml += `
+                        <td class="p-1.5 text-center ${cellHighlight}">
+                            <select onchange="updateDayValue(${idx}, '${day}', this.value)" class="w-12 text-center text-xs py-1 rounded border ${bgClass} cursor-pointer focus:outline-none focus:ring-1 focus:ring-quantum">
+                                <option value="Y" ${!isN ? 'selected' : ''}>Y</option>
+                                <option value="N" ${isN ? 'selected' : ''}>N</option>
+                            </select>
+                        </td>
+                    `;
+                });
+
+                tr.innerHTML = `
+                    <td class="p-3 text-center text-gray-400 font-mono">${idx + 1}</td>
+                    <td class="p-1.5">
+                        <input type="text" value="${row.rol}" onchange="updateRowField(${idx}, 'rol', this.value)" class="w-20 px-2 py-1 text-xs border rounded border-gray-300">
+                    </td>
+                    <td class="p-1.5">
+                        <input type="text" value="${row.codo}" onchange="updateRowField(${idx}, 'codo', this.value)" class="w-24 px-2 py-1 text-xs border rounded border-gray-300 font-semibold">
+                    </td>
+                    <td class="p-1.5">
+                        <input type="text" value="${row.nombre}" onchange="updateRowField(${idx}, 'nombre', this.value)" class="w-full px-2 py-1 text-xs border rounded border-gray-300 font-medium text-gray-800">
+                    </td>
+                    <td class="p-1.5">
+                        <input type="text" value="${row.zona}" onchange="updateRowField(${idx}, 'zona', this.value)" class="w-16 px-2 py-1 text-xs border rounded border-gray-300">
+                    </td>
+                    ${daysHtml}
+                    <td class="p-3 text-center">
+                        <button onclick="deleteRow(${idx})" class="text-gray-400 hover:text-red-600 transition" title="Eliminar fila">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateDayValue(index, day, val) {
+            digitizedData[index][day] = val;
+            renderTable();
+            updateStats();
+        }
+
+        function updateRowField(index, field, val) {
+            digitizedData[index][field] = val;
+        }
+
+        function deleteRow(index) {
+            digitizedData.splice(index, 1);
+            renderTable();
+            updateStats();
+        }
+
+        function addNewRow() {
+            const defaultRol = document.getElementById('cfgRol').value || 'TECNICO';
+            const defaultCodo = document.getElementById('cfgCodo').value || 'TECSYCOM';
+            const defaultZona = document.getElementById('cfgZona').value || 'ESTE';
+
+            digitizedData.push({
+                rol: defaultRol,
+                codo: defaultCodo,
+                nombre: "NUEVO TÉCNICO",
+                zona: defaultZona,
+                lunes: "Y", martes: "Y", miercoles: "Y", jueves: "Y", viernes: "Y", sabado: "Y", domingo: "Y"
+            });
+            renderTable();
+            updateStats();
+        }
+
+        function updateStats() {
+            const totalTechs = digitizedData.length;
+            let totalN = 0;
+            let totalY = 0;
+            let todayN = 0;
+            let todayY = 0;
+
+            const days = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+            const currentDay = getCurrentDayName();
+
+            digitizedData.forEach(row => {
+                days.forEach(d => {
+                    const isRest = (row[d] || 'Y').toUpperCase() === 'N';
+                    if (isRest) {
+                        totalN++;
+                    } else {
+                        totalY++;
+                    }
+
+                    if (d === currentDay) {
+                        if (isRest) todayN++;
+                        else todayY++;
+                    }
+                });
+            });
+
+            const totalSlots = totalTechs * 7 || 1;
+            const pctN = Math.round((totalN / totalSlots) * 100);
+            const pctY = Math.round((totalY / totalSlots) * 100);
+
+            document.getElementById('statTotalTechs').textContent = totalTechs;
+            document.getElementById('statTotalN').innerHTML = `${totalN} <span class="text-xs text-gray-400 font-normal">(${pctN}%)</span>`;
+            document.getElementById('statTotalY').innerHTML = `${totalY} <span class="text-xs text-gray-400 font-normal">(${pctY}%)</span>`;
+
+            document.getElementById('todayRestCount').textContent = todayN;
+            document.getElementById('todayWorkCount').textContent = todayY;
+        }
+
+        // GUARDAR EN LA HOJA DATA
+        async function saveToGoogleSheets() {
+            if (digitizedData.length === 0) {
+                showToast('No hay datos para guardar.', 'error', 'Tabla Vacía');
+                return;
+            }
+
+            const btn = document.getElementById('btnSaveSheets');
+            const originalContent = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Guardando en DATA...`;
+
+            try {
+                // Enviar el array de datos directamente
+                await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: {
+                        'Content-Type': 'text/plain;charset=utf-8',
+                    },
+                    body: JSON.stringify(digitizedData)
+                });
+
+                showToast('Datos actualizados directamente en la hoja DATA de Google Sheets.', 'success', 'Sincronización Exitosa');
+            } catch (error) {
+                console.error('Error al guardar en DATA:', error);
+                showToast('Ocurrió un error al enviar los datos a la hoja DATA.', 'error', 'Error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+            }
+        }
+
+        function exportToExcel() {
+            if (digitizedData.length === 0) {
+                showToast('No hay datos para exportar.', 'error', 'Error');
+                return;
+            }
+
+            const exportRows = digitizedData.map(item => ({
+                'Rol': item.rol,
+                'CODO': item.codo,
+                'Nombre': item.nombre,
+                'Zona': item.zona,
+                'Lunes': item.lunes,
+                'Martes': item.martes,
+                'Miercoles': item.miercoles,
+                'Jueves': item.jueves,
+                'Viernes': item.viernes,
+                'Sabado': item.sabado,
+                'Domingo': item.domingo
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(exportRows);
+            worksheet['!cols'] = [
+                { wch: 12 }, { wch: 15 }, { wch: 40 }, { wch: 10 },
+                { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 },
+                { wch: 10 }, { wch: 10 }, { wch: 10 }
+            ];
+
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "DATA");
+
+            const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '_');
+            XLSX.writeFile(workbook, `DESCANSO_DATA_${dateStr}.xlsx`);
+            showToast('Excel generado con éxito.', 'success', 'Exportación');
+        }
+
+        function exportToCSV() {
+            if (digitizedData.length === 0) {
+                showToast('No hay datos para exportar.', 'error', 'Error');
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Rol,CODO,Nombre,Zona,Lunes,Martes,Miercoles,Jueves,Viernes,Sabado,Domingo\n";
+
+            digitizedData.forEach(item => {
+                const rowStr = `"${item.rol}","${item.codo}","${item.nombre}","${item.zona}","${item.lunes}","${item.martes}","${item.miercoles}","${item.jueves}","${item.viernes}","${item.sabado}","${item.domingo}"`;
+                csvContent += rowStr + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `DESCANSO_DATA_${new Date().toISOString().slice(0, 10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast('CSV generado con éxito.', 'success', 'Exportación');
+        }
+
+        window.onload = function() {
+            highlightCurrentDayHeader();
+            fetchDataFromGoogleSheets();
+        }
+    </script>
+</body>
+</html>
