@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel de Órdenes por Distrito y Tramo · Peru Fibra</title>
+<!-- Icono de la página (Favicon) -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2714%27 fill=%27%23FF5A0A%27/%3E%3Cpath d=%27M12 38c11-15 29-15 40 0%27 stroke=%27white%27 stroke-width=%275%27 fill=%27none%27 stroke-linecap=%27round%27/%3E%3Cpath d=%27M20 46c7-9 17-9 24 0%27 stroke=%27white%27 stroke-width=%275%27 fill=%27none%27 stroke-linecap=%27round%27/%3E%3Ccircle cx=%2732%27 cy=%2753%27 r=%274.5%27 fill=%27white%27/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  :root {
+    /* Color de Marca Solicitado */
+    --brand-orange: #FF5A0A;
+    --brand-orange-hover: #E04E07;
+    --brand-orange-glow: rgba(255, 90, 10, 0.25);
+    
+    /* Paleta Base Moderna y Oscura */
+    --bg: #0C0F14;
+    --panel: #141923;
+    --panel-hover: #1B2230;
+    --panel-2: #1D2433;
+    --line: #2A3447;
+    --line-subtle: #1F2837;
+    
+    /* Tipografía */
+    --text: #F1F5F9;
+    --text-muted: #94A3B8;
+    --text-dim: #64748B;
+    
+    /* Estados y Colores Secundarios */
+    --amber: #FFB020;
+    --amber-bg: rgba(255, 176, 32, 0.12);
+    --amber-border: rgba(255, 176, 32, 0.3);
+
+    --teal: #14B8A6;
+    --teal-bg: rgba(20, 184, 166, 0.12);
+    --teal-border: rgba(20, 184, 166, 0.3);
+
+    --coral: #FF455D;
+    --coral-bg: rgba(255, 69, 93, 0.1);
+    --coral-border: rgba(255, 69, 93, 0.3);
+
+    /* Sombras y Luces */
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.4);
+    --shadow-md: 0 6px 18px rgba(0,0,0,0.5);
+    --shadow-glow: 0 0 20px var(--brand-orange-glow);
+  }
+
+  * { box-sizing: border-box; }
+  
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  
+  .wrap {
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 32px;
+    flex: 1;
+  }
+
+  /* HEADER RE-DISEÑADO */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 32px;
+  }
+
+  header .title-block {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .brand-logo {
+    width: 42px;
+    height: 42px;
+    background: var(--brand-orange);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-glow);
+    flex-shrink: 0;
+  }
+
+  .brand-logo svg {
+    width: 24px;
+    height: 24px;
+    fill: #FFFFFF;
+  }
+
+  header h1 {
+    font-size: 22px;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: -0.3px;
+    color: #FFFFFF;
+  }
+
+  header p {
+    margin: 4px 0 0;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  /* CONTROLES DE BOTONES */
+  .upload-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .upload-btn {
+    position: relative;
+    overflow: hidden;
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--line);
+    padding: 10px 18px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    border-radius: 8px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .upload-btn:hover {
+    background: var(--panel-hover);
+    border-color: var(--brand-orange);
+    color: #FFFFFF;
+    transform: translateY(-1px);
+  }
+
+  .upload-btn.csv {
+    background: var(--brand-orange);
+    color: #FFFFFF;
+    border: none;
+    box-shadow: 0 4px 12px rgba(255, 90, 10, 0.25);
+  }
+
+  .upload-btn.csv:hover {
+    background: var(--brand-orange-hover);
+    box-shadow: 0 6px 16px rgba(255, 90, 10, 0.35);
+  }
+
+  #fileInput, #fileInputCsv { display: none; }
+
+  .file-tag {
+    color: var(--text-muted);
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--panel-2);
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: 1px dashed var(--line);
+    max-width: 250px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ESTADO VACÍO Y ERRORES */
+  .empty {
+    border: 2px dashed var(--line);
+    padding: 70px 30px;
+    text-align: center;
+    color: var(--text-muted);
+    background: var(--panel);
+    border-radius: 14px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .empty-icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 16px;
+    background: var(--panel-2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--brand-orange);
+  }
+
+  .empty h2 {
+    color: var(--text);
+    font-size: 18px;
+    margin: 0 0 8px;
+    font-weight: 700;
+  }
+
+  .empty p {
+    max-width: 480px;
+    margin: 0 auto;
+    font-size: 13.5px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  .empty code {
+    background: rgba(255, 90, 10, 0.1);
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--brand-orange);
+    font-size: 12.5px;
+    border: 1px solid rgba(255, 90, 10, 0.2);
+  }
+
+  .error-box {
+    border: 1px solid var(--coral-border);
+    background: var(--coral-bg);
+    border-radius: 10px;
+    padding: 16px 20px;
+    color: #FF8595;
+    font-size: 13.5px;
+    margin-bottom: 24px;
+  }
+  
+  .error-box strong { color: var(--coral); }
+
+  /* PANEL DE MAPEADO DE COLUMNAS */
+  .map-panel {
+    border: 1px solid var(--line);
+    background: var(--panel);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 28px;
+    box-shadow: var(--shadow-md);
+  }
+
+  .map-panel h3 {
+    font-size: 16px;
+    margin: 0 0 6px;
+    color: var(--text);
+  }
+
+  .map-panel > p {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin: 0 0 20px;
+  }
+
+  .map-row {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .map-row label {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  select {
+    width: 100%;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  select:focus { border-color: var(--brand-orange); }
+
+  .apply-btn {
+    margin-top: 12px;
+    background: var(--brand-orange);
+    color: #FFFFFF;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 13.5px;
+    cursor: pointer;
+    box-shadow: var(--shadow-glow);
+    transition: background-color 0.2s;
+  }
+
+  .apply-btn:hover { background: var(--brand-orange-hover); }
+
+  /* TARJETAS DE ESTADÍSTICAS */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .stat {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 20px 22px;
+    box-shadow: var(--shadow-sm);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--line);
+  }
+
+  .stat .num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 34px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -1px;
+    color: var(--text);
+  }
+
+  .stat .lbl {
+    color: var(--text-muted);
+    font-size: 12.5px;
+    margin-top: 10px;
+    font-weight: 500;
+  }
+
+  .stat.amber::before { background: var(--amber); }
+  .stat.amber .num { color: var(--amber); }
+
+  .stat.teal::before { background: var(--teal); }
+  .stat.teal .num { color: var(--teal); }
+
+  /* SECCIONES Y GRÁFICOS */
+  section { margin-bottom: 40px; }
+
+  .section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+
+  .section-head h2 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0;
+  }
+
+  .section-head .sub {
+    color: var(--brand-orange);
+    background: rgba(255, 90, 10, 0.12);
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    border: 1px solid rgba(255, 90, 10, 0.2);
+  }
+
+  .chart-card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 24px;
+    box-shadow: var(--shadow-md);
+  }
+
+  .legend-row {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line-subtle);
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  .legend-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+  }
+
+  /* BUSCADOR */
+  .search-input {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 9px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: inherit;
+    width: 250px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .search-input:focus {
+    border-color: var(--brand-orange);
+  }
+
+  /* ACORDEÓN DE DISTRITOS Y TABLAS */
+  .district-card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: border-color 0.2s ease;
+  }
+
+  .district-card:hover { border-color: var(--line); }
+
+  .district-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 20px;
+    cursor: pointer;
+    user-select: none;
+    background: var(--panel);
+    transition: background-color 0.15s ease;
+  }
+
+  .district-head:hover { background: var(--panel-hover); }
+
+  .district-head .name {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text);
+  }
+
+  .district-head .badges {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .pill {
+    font-size: 11.5px;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 700;
+  }
+
+  .pill.programado {
+    background: var(--amber-bg);
+    color: var(--amber);
+    border: 1px solid var(--amber-border);
+  }
+
+  .pill.coordinado {
+    background: var(--teal-bg);
+    color: var(--teal);
+    border: 1px solid var(--teal-border);
+  }
+
+  .pill.total {
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--line);
+  }
+
+  .chevron {
+    color: var(--text-muted);
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .district-card.open .chevron { transform: rotate(90deg); }
+  
+  .district-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.25s ease;
+    border-top: 1px solid transparent;
+  }
+
+  .district-card.open .district-body { border-top-color: var(--line); }
+
+  .summary-bar {
+    display: flex;
+    gap: 20px;
+    padding: 14px 20px;
+    background: var(--panel-2);
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .summary-bar span strong {
+    font-family: 'JetBrains Mono', monospace;
+    margin-left: 4px;
+  }
+
+  .table-scroll { overflow-x: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    text-align: left;
+  }
+
+  thead th {
+    color: var(--text-muted);
+    font-weight: 700;
+    font-size: 11px;
+    padding: 12px 16px;
+    background: var(--panel-2);
+    white-space: nowrap;
+    border-bottom: 1px solid var(--line);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  tbody td {
+    padding: 12px 16px;
+    border-top: 1px solid var(--line-subtle);
+    white-space: nowrap;
+    color: var(--text);
+  }
+
+  tbody td.estado-cell {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+  }
+
+  tbody tr { transition: background-color 0.15s ease; }
+  tbody tr:hover { background: var(--panel-hover); }
+
+  /* FOOTER */
+  footer {
+    padding: 24px 32px;
+    color: var(--text-dim);
+    font-size: 12.5px;
+    border-top: 1px solid var(--line);
+    background: var(--panel);
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  footer::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: var(--brand-orange);
+    border-radius: 50%;
+  }
+
+  @media (max-width: 900px) {
+    .wrap { padding: 20px; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    header { align-items: flex-start; }
+  }
+
+  @media (max-width: 600px) {
+    .stats { grid-template-columns: 1fr; }
+    .upload-row { width: 100%; justify-content: flex-start; }
+    .file-tag { max-width: 100%; text-align: left; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header>
+    <div class="title-block">
+      <div class="brand-logo">
+        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+      </div>
+      <div>
+        <h1>Panel de Órdenes por Distrito y Tramo</h1>
+        <p><span class="mono" style="color:var(--brand-orange); font-weight:600;">BASE_PERUFIBRA</span> · Vista analítica avanzada</p>
+      </div>
+    </div>
+
+    <div>
+      <div class="upload-row">
+        <label class="upload-btn csv" for="fileInputCsv">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Cargar CSV
+        </label>
+        <input type="file" id="fileInputCsv" accept=".csv">
+
+        <label class="upload-btn" for="fileInput">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Cargar Excel
+        </label>
+        <input type="file" id="fileInput" accept=".xlsx,.xls">
+      </div>
+      <div class="file-tag" id="fileTag">Ningún archivo cargado</div>
+    </div>
+  </header>
+
+  <div id="errorSlot"></div>
+  <div id="mapSlot"></div>
+
+  <div id="emptyState" class="empty">
+    <div class="empty-icon">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+    </div>
+    <h2>Sube un libro de Excel o un CSV para comenzar</h2>
+    <p>Lectura de tramos desde la columna <code>DR</code> y estados (<code>PROGRAMADO</code> / <code>COORDINADO</code>) desde la columna <code>DO</code>. Con Excel se busca automáticamente la hoja <code>BASE_PERUFIBRA</code>.</p>
+  </div>
+
+  <div id="results" style="display:none;">
+    <div class="stats" id="statsRow"></div>
+
+    <section>
+      <div class="section-head">
+        <h2>Tramos por distrito</h2>
+        <span class="sub" id="chartSub"></span>
+      </div>
+      <div class="chart-card">
+        <canvas id="tramoChart" height="110"></canvas>
+        <div class="legend-row" id="legendRow"></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-head">
+        <h2>Pendientes por distrito</h2>
+        <input class="search-input" id="districtSearch" placeholder="Buscar distrito…">
+      </div>
+      <div id="pendingList"></div>
+    </section>
+  </div>
+
+</div>
+
+<footer>
+  Filtros aplicados según estándares de Peru Fibra. Lectura directa de cuadrantes de atención y tramos asignados.
+</footer>
+
+<script>
+const TARGET_SHEET = 'BASE_PERUFIBRA';
+const PENDING_STATES = ['PROGRAMADO', 'COORDINADO'];
+const PALETTE = ['#FF5A0A', '#14B8A6', '#FF455D', '#A855F7', '#22C55E', '#38BDF8'];
+const KNOWN_TRAMO_ORDER = ['08AM-12PM', '12PM-16PM', '16PM-20PM'];
+
+const TARGET_COLUMNS = [
+  'NEGOCIO', 'Codigo', 'Cliente', 'dni', 'Direccion', 
+  'Distrito', 'Ref-1', 'Ref-2', 'Estado', 'Tecnico', 
+  'Cel_Tecnico', 'Tramo', 'Observaciones'
+];
+
+function colLetterToIndex(col) {
+  let temp = col.toUpperCase();
+  let num = 0;
+  for (let i = 0; i < temp.length; i++) {
+    num = num * 26 + (temp.charCodeAt(i) - 64);
+  }
+  return num - 1;
+}
+
+const DR_INDEX = colLetterToIndex('DR');
+const DO_INDEX = colLetterToIndex('DO');
+
+let state = { headers: [], rows: [], colMap: {} };
+let chartInstance = null;
+
+const fileInput = document.getElementById('fileInput');
+const fileTag = document.getElementById('fileTag');
+const errorSlot = document.getElementById('errorSlot');
+const mapSlot = document.getElementById('mapSlot');
+const emptyState = document.getElementById('emptyState');
+const resultsEl = document.getElementById('results');
+
+fileInput.addEventListener('change', handleFile);
+const fileInputCsv = document.getElementById('fileInputCsv');
+fileInputCsv.addEventListener('change', handleFile);
+
+function clearSlots(){
+  errorSlot.innerHTML = '';
+  mapSlot.innerHTML = '';
+}
+
+function showError(html){
+  errorSlot.innerHTML = `<div class="error-box"><strong>No se pudo procesar el archivo.</strong> ${html}</div>`;
+  resultsEl.style.display = 'none';
+  emptyState.style.display = 'block';
+}
+
+function handleFile(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  clearSlots();
+  fileTag.textContent = file.name;
+
+  const esCSV = /\.csv$/i.test(file.name);
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try{
+      const data = new Uint8Array(evt.target.result);
+      const wb = XLSX.read(data, { type: 'array' });
+
+      let sheetName;
+      if (esCSV){
+        sheetName = wb.SheetNames[0];
+      } else {
+        sheetName = wb.SheetNames.find(n => n.trim().toUpperCase() === TARGET_SHEET);
+        if(!sheetName){
+          showError(`El libro no contiene una hoja llamada <span class="mono">${TARGET_SHEET}</span>.`);
+          return;
+        }
+      }
+
+      const ws = wb.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false });
+      processRows(rows);
+    }catch(err){
+      showError(`Error al leer el archivo: ${err.message}`);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  e.target.value = '';
+}
+
+function processRows(rows){
+  let headerIdx = rows.findIndex(r => r.some(c => /distrito/i.test(String(c))));
+  if(headerIdx === -1) headerIdx = 0;
+
+  const headers = rows[headerIdx].map(h => String(h).trim());
+  const dataRows = rows.slice(headerIdx + 1).filter(r => r.some(c => String(c).trim() !== ''));
+
+  if(dataRows.length === 0){
+    showError('La hoja BASE_PERUFIBRA no tiene filas de datos debajo del encabezado.');
+    return;
+  }
+
+  state.headers = headers;
+  state.rows = dataRows;
+
+  const idxDistrito = headers.findIndex(h => /distrito/i.test(h));
+  
+  let idxTramo = DR_INDEX < headers.length && /tramo/i.test(headers[DR_INDEX]) ? DR_INDEX : -1;
+  if(idxTramo === -1) idxTramo = headers.findIndex(h => /tramo/i.test(h));
+
+  let idxEstado = DO_INDEX < headers.length && /estado/i.test(headers[DO_INDEX]) ? DO_INDEX : -1;
+  if(idxEstado === -1) idxEstado = headers.findIndex(h => /estado/i.test(h));
+
+  if(idxDistrito === -1 || idxTramo === -1 || idxEstado === -1){
+    renderMappingPanel(headers, { idxDistrito, idxTramo, idxEstado });
+    return;
+  }
+
+  state.colMap = { distrito: idxDistrito, tramo: idxTramo, estado: idxEstado };
+  buildDashboard();
+}
+
+function renderMappingPanel(headers, guess){
+  const options = headers.map((h,i) => `<option value="${i}">${h || '(columna ' + (i+1) + ')'}</option>`).join('');
+  mapSlot.innerHTML = `
+    <div class="map-panel">
+      <h3>Selección manual de columnas</h3>
+      <p>Confirma qué columna corresponde a cada campo si no se auto-detectaron:</p>
+      <div class="map-row">
+        <label for="mapDistrito">Distrito</label>
+        <select id="mapDistrito">${options}</select>
+      </div>
+      <div class="map-row">
+        <label for="mapTramo">Tramo (DR)</label>
+        <select id="mapTramo">${options}</select>
+      </div>
+      <div class="map-row">
+        <label for="mapEstado">Estado (DO)</label>
+        <select id="mapEstado">${options}</select>
+      </div>
+      <button class="apply-btn" id="applyMap">Aplicar y generar panel</button>
+    </div>
+  `;
+  if(guess.idxDistrito >= 0) document.getElementById('mapDistrito').value = guess.idxDistrito;
+  if(guess.idxTramo >= 0) document.getElementById('mapTramo').value = guess.idxTramo;
+  if(guess.idxEstado >= 0) document.getElementById('mapEstado').value = guess.idxEstado;
+
+  document.getElementById('applyMap').addEventListener('click', () => {
+    state.colMap = {
+      distrito: parseInt(document.getElementById('mapDistrito').value, 10),
+      tramo: parseInt(document.getElementById('mapTramo').value, 10),
+      estado: parseInt(document.getElementById('mapEstado').value, 10),
+    };
+    mapSlot.innerHTML = '';
+    buildDashboard();
+  });
+}
+
+function norm(v){ return String(v ?? '').trim(); }
+function up(v){ return norm(v).toUpperCase(); }
+
+function buildDashboard(){
+  const { distrito, tramo, estado } = state.colMap;
+  const records = state.rows
+    .map(r => ({
+      distrito: norm(r[distrito]),
+      tramo: norm(r[tramo]),
+      estado: norm(r[estado]),
+      raw: r,
+    }))
+    .filter(rec => rec.distrito !== '');
+
+  if(records.length === 0){
+    showError('No se encontraron filas con distrito no vacío.');
+    return;
+  }
+
+  const seenTramos = [...new Set(records.map(r => r.tramo).filter(t => t !== ''))];
+  const tramos = [
+    ...KNOWN_TRAMO_ORDER.filter(t => seenTramos.includes(t)),
+    ...seenTramos.filter(t => !KNOWN_TRAMO_ORDER.includes(t)).sort(),
+  ];
+
+  const distritos = [...new Set(records.map(r => r.distrito))].sort((a,b) => a.localeCompare(b));
+  const counts = {};
+  distritos.forEach(d => { counts[d] = {}; tramos.forEach(t => counts[d][t] = 0); });
+  records.forEach(r => {
+    if(r.tramo !== '' && counts[r.distrito]) counts[r.distrito][r.tramo]++;
+  });
+
+  const pending = records.filter(r => PENDING_STATES.includes(up(r.estado)));
+  const pendingByDistrict = {};
+  pending.forEach(r => {
+    if(!pendingByDistrict[r.distrito]) pendingByDistrict[r.distrito] = [];
+    pendingByDistrict[r.distrito].push(r);
+  });
+
+  renderStats(records, pending, distritos);
+  renderChart(distritos, tramos, counts);
+  renderPending(pendingByDistrict);
+
+  errorSlot.innerHTML = '';
+  emptyState.style.display = 'none';
+  resultsEl.style.display = 'block';
+}
+
+function renderStats(records, pending, distritos){
+  const programado = pending.filter(r => up(r.estado) === 'PROGRAMADO').length;
+  const coordinado = pending.filter(r => up(r.estado) === 'COORDINADO').length;
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat"><div class="num">${records.length}</div><div class="lbl">Registros procesados</div></div>
+    <div class="stat"><div class="num">${distritos.length}</div><div class="lbl">Distritos</div></div>
+    <div class="stat amber"><div class="num">${programado}</div><div class="lbl">Programados (DO)</div></div>
+    <div class="stat teal"><div class="num">${coordinado}</div><div class="lbl">Coordinados (DO)</div></div>
+  `;
+}
+
+function renderChart(distritos, tramos, counts){
+  document.getElementById('chartSub').textContent = `${distritos.length} Distritos`;
+
+  const datasets = tramos.map((t, i) => ({
+    label: t,
+    data: distritos.map(d => counts[d][t]),
+    backgroundColor: PALETTE[i % PALETTE.length],
+    borderRadius: 4,
+    maxBarThickness: 24,
+  }));
+
+  const ctx = document.getElementById('tramoChart').getContext('2d');
+  if(chartInstance) chartInstance.destroy();
+
+  const heightPx = Math.max(300, distritos.length * 32);
+  document.getElementById('tramoChart').parentElement.style.height = heightPx + 'px';
+  document.getElementById('tramoChart').style.height = heightPx + 'px';
+
+  chartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: distritos, datasets },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { 
+          stacked: true, 
+          ticks: { color: '#94A3B8', precision: 0 }, 
+          grid: { color: '#1F2837' } 
+        },
+        y: { 
+          stacked: true, 
+          ticks: { color: '#F1F5F9', font: { size: 12, weight: 600 } }, 
+          grid: { display: false } 
+        },
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#141923',
+          titleColor: '#FFFFFF',
+          bodyColor: '#94A3B8',
+          borderColor: '#2A3447',
+          borderWidth: 1,
+          padding: 12,
+          cornerRadius: 8
+        },
+      },
+    },
+  });
+
+  document.getElementById('legendRow').innerHTML = tramos.map((t, i) => `
+    <div class="legend-item">
+      <span class="legend-swatch" style="background:${PALETTE[i % PALETTE.length]}"></span>
+      ${t}
+    </div>
+  `).join('');
+}
+
+function mapSpecificColumns(){
+  const headers = state.headers;
+  return TARGET_COLUMNS.map(colName => {
+    let idx = -1;
+    
+    if (colName === 'Estado' && state.colMap.estado !== undefined) {
+      idx = state.colMap.estado;
+    } else if (colName === 'Tramo' && state.colMap.tramo !== undefined) {
+      idx = state.colMap.tramo;
+    } else if (colName === 'Distrito' && state.colMap.distrito !== undefined) {
+      idx = state.colMap.distrito;
+    } else {
+      idx = headers.findIndex(h => up(h) === up(colName));
+    }
+
+    return {
+      label: colName,
+      index: idx
+    };
+  });
+}
+
+function renderPending(pendingByDistrict){
+  const districts = Object.keys(pendingByDistrict).sort((a,b) =>
+    pendingByDistrict[b].length - pendingByDistrict[a].length
+  );
+  
+  const colSpecs = mapSpecificColumns();
+  const listEl = document.getElementById('pendingList');
+
+  if(districts.length === 0){
+    listEl.innerHTML = `<div class="empty" style="padding:40px 20px;"><p>No hay órdenes con estado PROGRAMADO o COORDINADO en la columna DO.</p></div>`;
+    return;
+  }
+
+  listEl.innerHTML = districts.map((d, i) => {
+    const recs = pendingByDistrict[d];
+    const progCount = recs.filter(r => up(r.estado) === 'PROGRAMADO').length;
+    const coordCount = recs.filter(r => up(r.estado) === 'COORDINADO').length;
+    const totalCount = recs.length;
+
+    const rowsHtml = recs.map(r => `
+      <tr>
+        ${colSpecs.map(spec => {
+          const isEstado = spec.label === 'Estado';
+          const val = spec.index !== -1 ? norm(r.raw[spec.index]) : '';
+          const color = isEstado ? (up(val) === 'PROGRAMADO' ? 'var(--amber)' : 'var(--teal)') : 'inherit';
+          return `<td class="${isEstado ? 'estado-cell' : ''}" style="color:${color}">${val || '—'}</td>`;
+        }).join('')}
+      </tr>
+    `).join('');
+
+    return `
+      <div class="district-card" data-idx="${i}">
+        <div class="district-head" onclick="toggleDistrict(${i})">
+          <span class="name">${d}</span>
+          <span class="badges">
+            ${progCount ? `<span class="pill programado">${progCount} programado</span>` : ''}
+            ${coordCount ? `<span class="pill coordinado">${coordCount} coordinado</span>` : ''}
+            <span class="pill total">Total: ${totalCount}</span>
+            <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg>
+          </span>
+        </div>
+        <div class="district-body">
+          <div class="summary-bar">
+            <span>Resumen del distrito:</span>
+            <span style="color:var(--amber);">Programados: <strong>${progCount}</strong></span>
+            <span style="color:var(--teal);">Coordinados: <strong>${coordCount}</strong></span>
+            <span>Total Pendientes: <strong>${totalCount}</strong></span>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>${colSpecs.map(spec => `<th>${spec.label}</th>`).join('')}</tr>
+              </thead>
+              <tbody>${rowsHtml}</tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleDistrict(i){
+  const card = document.querySelector(`.district-card[data-idx="${i}"]`);
+  const body = card.querySelector('.district-body');
+  const isOpen = card.classList.contains('open');
+  if(isOpen){
+    body.style.maxHeight = '0px';
+    card.classList.remove('open');
+  }else{
+    card.classList.add('open');
+    body.style.maxHeight = body.scrollHeight + 'px';
+  }
+}
+
+document.getElementById('districtSearch').addEventListener('input', (e) => {
+  const q = e.target.value.trim().toLowerCase();
+  document.querySelectorAll('.district-card').forEach(card => {
+    const name = card.querySelector('.name').textContent.toLowerCase();
+    card.style.display = name.includes(q) ? '' : 'none';
+  });
+});
+</script>
+
+<script>
+// Panel (index.html): sincroniza la carga entre pestañas.
+(function(){
+  var CSV_ID = 'fileInputCsv', XLS_ID = 'fileInput';
+  var recibiendo = false;
+  function esArchivoValido(f){ return f && /\.(csv|xlsx|xls)$/i.test(f.name); }
+  function avisarAlPanel(f){
+    if (recibiendo || !esArchivoValido(f) || window.parent === window) return;
+    try{ window.parent.postMessage({ type: 'pf-archivo-cargado', file: f }, '*'); }catch(err){}
+  }
+
+  document.addEventListener('change', function(e){
+    var t = e.target;
+    if (t && (t.id === CSV_ID || t.id === XLS_ID) && t.files && t.files[0]) avisarAlPanel(t.files[0]);
+  }, true);
+
+  document.addEventListener('drop', function(e){
+    var fs = e.dataTransfer && e.dataTransfer.files;
+    if (fs && fs[0]) avisarAlPanel(fs[0]);
+  }, true);
+
+  window.addEventListener('message', function(e){
+    if (e.source !== window.parent || !e.data) return;
+    if (e.data.type === 'pf-cargar-archivo' && e.data.file){
+      var f = e.data.file;
+      var input = document.getElementById(/\.csv$/i.test(f.name) ? CSV_ID : XLS_ID);
+      if (!input) return;
+      recibiendo = true;
+      try{
+        Object.defineProperty(input, 'files', { value: [f], configurable: true });
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        window.parent.postMessage({ type: 'pf-ack' }, '*');
+      }catch(err){
+        console.error('No se pudo cargar el archivo desde el panel:', err);
+      }finally{
+        delete input.files;
+        recibiendo = false;
+      }
+    } else if (e.data.type === 'pf-mostrar'){
+      try{ if (typeof chartInstance !== 'undefined' && chartInstance) chartInstance.resize(); }catch(err){}
+      window.dispatchEvent(new Event('resize'));
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
