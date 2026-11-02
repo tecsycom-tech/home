@@ -26,86 +26,37 @@
     font-family:'Space Grotesk', system-ui, sans-serif;
     -webkit-font-smoothing:antialiased;
   }
-  
-  /* Estructura Principal en Grid/Flex para Panel Lateral Izquierdo */
-  .app{
-    display:flex;
-    height:100vh;
-    overflow:hidden;
-  }
+  .app{display:flex; flex-direction:column; height:100vh;}
 
-  /* Panel Lateral Izquierdo */
   nav.tabbar{
-    display:flex; 
-    flex-direction:column; 
-    align-items:stretch; 
-    gap:8px;
+    display:flex; align-items:center; gap:6px;
     background:var(--panel);
-    border-right:1px solid var(--line);
-    padding:16px 12px;
+    border-bottom:1px solid var(--line);
+    padding:12px 20px;
     box-shadow:var(--shadow);
-    width: 270px;
-    min-width: 270px;
-    height: 100vh;
-    overflow-y: auto;
-    z-index: 5;
+    flex-wrap:wrap;
+    z-index:5;
   }
-
   nav.tabbar .brand{
-    font-weight:700; 
-    font-size:15px; 
-    margin-bottom:12px;
-    padding-bottom:12px;
-    border-bottom: 1px solid var(--line);
-    color:var(--text); 
+    font-weight:700; font-size:15px; margin-right:18px;
+    color:var(--text); white-space:nowrap;
   }
   nav.tabbar .brand span{
-    display:block; 
-    font-weight:500; 
-    font-size:11.5px; 
-    color:var(--text-dim);
-    margin-top: 2px;
+    display:block; font-weight:500; font-size:11.5px; color:var(--text-dim);
   }
-
   .tab-btn{
-    font-family:inherit; 
-    font-size:13px; 
-    font-weight:600;
-    color:var(--text-dim); 
-    background:var(--panel-2);
-    border:1px solid #ffdec2; 
-    border-radius:6px;
-    padding:10px 14px; 
-    cursor:pointer; 
-    transition:all .15s ease;
-    text-align: left;
-    width: 100%;
+    font-family:inherit; font-size:13px; font-weight:600;
+    color:var(--text-dim); background:var(--panel-2);
+    border:1px solid #ffdec2; border-radius:6px;
+    padding:9px 16px; cursor:pointer; transition:all .15s ease;
+    white-space:nowrap;
   }
   .tab-btn:hover{ color:#c23f00; background:#ffe3d5; }
   .tab-btn.active{
     background:var(--accent); color:#fff; border-color:var(--accent); box-shadow:var(--shadow);
   }
 
-  /* Contenedor del estado de sincronización ubicado en la parte superior derecha de la zona de contenidos */
-  .content-area {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    height: 100vh;
-    min-width: 0;
-  }
-
-  .top-header-bar {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    background: var(--panel);
-    border-bottom: 1px solid var(--line);
-    padding: 10px 20px;
-    min-height: 50px;
-  }
-
-  .sync-status{ font-size:12px; color:var(--text-dim); max-width:520px; }
+  .sync-status{ margin-left:auto; font-size:12px; color:var(--text-dim); max-width:520px; }
   .sync-status.ok{ color:var(--accent); font-weight:600; }
   .sync-status.warn{ color:#b45309; }
 
@@ -119,17 +70,17 @@
   }
   .frames iframe.active{ display:block; }
 
-  @media (max-width:850px){
-    .app{ flex-direction:column; overflow:auto; height:auto; }
-    nav.tabbar{ width:100%; height:auto; border-right:none; border-bottom:1px solid var(--line); }
-    .content-area { height: 80vh; }
+  @media (max-width:700px){
+    nav.tabbar{ padding:10px 12px; gap:5px; }
+    nav.tabbar .brand{ width:100%; margin-right:0; margin-bottom:6px; }
+    .tab-btn{ padding:8px 12px; font-size:12.5px; }
+    .sync-status{ margin-left:0; width:100%; }
   }
 </style>
 </head>
 <body>
 
 <div class="app">
-  <!-- Panel Lateral Izquierdo con Botones -->
   <nav class="tabbar">
     <div class="brand">Peru Fibra <span>Panel operativo · Tecsycom</span></div>
     <button class="tab-btn active" data-target="frame-dilacion">Dilación</button>
@@ -142,30 +93,22 @@
     <button class="tab-btn" data-target="frame-cargaseriado">Carga de Seriado</button>
     <button class="tab-btn" data-target="frame-producdiaria">Produc-Diaria</button>
     <button class="tab-btn" data-target="frame-garantias">Garantías</button>
-    <!-- Nuevo Botón Agregado Solicitado -->
     <button class="tab-btn" data-target="frame-descansoprog">Descanso-Prog</button>
+    <div class="sync-status" id="syncStatus"></div>
   </nav>
 
-  <!-- Área de Contenido Principal -->
-  <div class="content-area">
-    <div class="top-header-bar">
-      <div class="sync-status" id="syncStatus"></div>
-    </div>
-
-    <div class="frames">
-      <iframe id="frame-dilacion" class="active" src="dilacion.html"></iframe>
-      <iframe id="frame-distrito" src="distrito.html"></iframe>
-      <iframe id="frame-evolutivo" src="evolutivo.html"></iframe>
-      <iframe id="frame-efectividad" src="efectividad.html"></iframe>
-      <iframe id="frame-adicionales" src="reporte_adicionales.html"></iframe>
-      <iframe id="frame-bonoextra" src="bonoextra.html" data-nosync></iframe>
-      <iframe id="frame-altasaverias" src="Reporte_Altas_vs_Averias.html" data-nosync></iframe>
-      <iframe id="frame-cargaseriado" src="carga-seriados.html" data-nosync></iframe>
-      <iframe id="frame-producdiaria" src="produccion-diario.html" data-nosync></iframe>
-      <iframe id="frame-garantias" src="garantias.html" data-nosync></iframe>
-      <!-- Nuevo iframe para el Descanso Programado -->
-      <iframe id="frame-descansoprog" src="descanso_programado.html" data-nosync></iframe>
-    </div>
+  <div class="frames">
+    <iframe id="frame-dilacion" class="active" src="dilacion.html"></iframe>
+    <iframe id="frame-distrito" src="distrito.html"></iframe>
+    <iframe id="frame-evolutivo" src="evolutivo.html"></iframe>
+    <iframe id="frame-efectividad" src="efectividad.html"></iframe>
+    <iframe id="frame-adicionales" src="reporte_adicionales.html"></iframe>
+    <iframe id="frame-bonoextra" src="bonoextra.html" data-nosync></iframe>
+    <iframe id="frame-altasaverias" src="Reporte_Altas_vs_Averias.html" data-nosync></iframe>
+    <iframe id="frame-cargaseriado" src="carga-seriados.html" data-nosync></iframe>
+    <iframe id="frame-producdiaria" src="produccion-diario.html" data-nosync></iframe>
+    <iframe id="frame-garantias" src="garantias.html" data-nosync></iframe>
+    <iframe id="frame-descansoprog" src="descanso_programado.html" data-nosync></iframe>
   </div>
 </div>
 
@@ -183,7 +126,6 @@
     });
   });
 
-  // Sincronización de archivos y estados
   const etiquetas = {};
   buttons.forEach(b => { etiquetas[b.dataset.target] = b.textContent.trim(); });
   const syncStatus = document.getElementById('syncStatus');
