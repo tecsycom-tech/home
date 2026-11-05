@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Win | Tecsycom</title>
+    <!-- Favicon / Icono de pestaña (Centro Operativo - Antena / Telecomunicaciones) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FF5A0A' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16z' fill='%23FF5A0A' fill-opacity='0.12'/><path d='M4.93 19.07a10 10 0 0 1 0-14.14'/><path d='M19.07 4.93a10 10 0 0 1 0 14.14'/><path d='M7.76 16.24a6 6 0 0 1 0-8.48'/><path d='M16.24 7.76a6 6 0 0 1 0 8.48'/><circle cx='12' cy='12' r='2' fill='%23FF5A0A'/></svg>">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS (XLSX) CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fff7ed',
+                            100: '#ffedd5',
+                            500: '#FF5A0A',
+                            600: '#e04800',
+                            700: '#c23800',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar for preview areas */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .transition-all-fast {
+            transition: all 0.2s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col antialiased selection:bg-brand-500 selection:text-white">
+
+    <!-- Header / Navbar -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-brand-500 text-white p-2 rounded-xl shadow-md shadow-brand-500/20">
+                    <i data-lucide="radio" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg text-slate-900 leading-tight">Win - Tecsycom <span class="text-brand-500 font-medium text-xs px-2 py-0.5 rounded-full bg-brand-50 border border-brand-100 ml-1.5">Michell Sulca</span></h1>
+                    <p class="text-xs text-slate-500">Gestor de Órdenes & Plantillas Telegram</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span id="fileStatusBadge" class="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                    <span class="w-2 h-2 rounded-full bg-slate-400 mr-1.5"></span> Sin Archivo
+                </span>
+                <button onclick="resetAll()" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors" title="Reiniciar Formulario">
+                    <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- LEFT COLUMN: Excel Upload + Record Search + Dynamic Form (7 cols) -->
+        <div class="lg:col-span-7 flex flex-col space-y-6">
+
+            <!-- Card 1: Upload Excel -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm transition-all">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                        <i data-lucide="file-spreadsheet" class="w-4 h-4 text-brand-500"></i>
+                        1. Cargar Archivo Excel
+                    </h2>
+                    <span class="text-xs text-slate-400">Archivos .xlsx, .xls</span>
+                </div>
+
+                <div class="relative group">
+                    <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleFileUpload(event)">
+                    <label for="excelFileInput" class="flex flex-col items-center justify-center p-5 border-2 border-dashed border-slate-200 group-hover:border-brand-500/50 rounded-xl cursor-pointer bg-slate-50/50 group-hover:bg-brand-50/30 transition-all text-center">
+                        <div id="uploadIdleState" class="flex flex-col items-center space-y-2">
+                            <div class="w-10 h-10 rounded-full bg-brand-50 text-brand-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                <i data-lucide="upload-cloud" class="w-5 h-5"></i>
+                            </div>
+                            <p class="text-sm font-medium text-slate-700">Haz clic o arrastra un archivo Excel aquí</p>
+                            <p class="text-xs text-slate-400">Soporta 'misOrdenesdeTrabajo.xlsx' (Lectura autodetectada)</p>
+                        </div>
+                        <div id="uploadLoadedState" class="hidden flex items-center space-x-3 text-left w-full">
+                            <div class="p-3 bg-emerald-50 text-emerald-600 rounded-lg">
+                                <i data-lucide="file-check" class="w-6 h-6"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p id="loadedFileName" class="text-sm font-semibold text-slate-800 truncate">archivo.xlsx</p>
+                                <p id="loadedFileDetails" class="text-xs text-slate-500">0 registros cargados correctamente</p>
+                            </div>
+                            <button type="button" onclick="event.preventDefault(); document.getElementById('excelFileInput').click();" class="text-xs font-medium text-brand-500 hover:text-brand-600 bg-white px-3 py-1.5 rounded-md border border-slate-200 shadow-sm">
+                                Cambiar
+                            </button>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Card 2: Record Selector / Search -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm relative">
+                <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wider flex items-center gap-2 mb-3">
+                    <i data-lucide="search" class="w-4 h-4 text-brand-500"></i>
+                    2. Buscar Registro / Cliente
+                </h2>
+
+                <div class="relative">
+                    <div class="relative">
+                        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+                        <input type="text" id="searchInput" oninput="filterRecords(this.value)" placeholder="Buscar por Nombre, DNI, Teléfono u Orden ID..." disabled class="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                        <button id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+
+                    <!-- Dropdown Results -->
+                    <div id="searchResults" class="hidden absolute top-full left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl z-20 divide-y divide-slate-100">
+                    </div>
+                </div>
+
+                <!-- Selected Record Preview Pill -->
+                <div id="selectedRecordBadge" class="hidden mt-3 p-3 bg-brand-50/60 border border-brand-100 rounded-xl flex items-center justify-between text-xs text-brand-700">
+                    <div class="flex items-center space-x-2 truncate">
+                        <i data-lucide="user-check" class="w-4 h-4 text-brand-500 shrink-0"></i>
+                        <span id="selectedRecordText" class="font-medium truncate">Cliente Seleccionado</span>
+                    </div>
+                    <button onclick="clearSelectedRecord()" class="text-brand-500 hover:text-brand-700 font-semibold shrink-0 ml-2">Limpiar</button>
+                </div>
+            </div>
+
+            <!-- Card 3: Form Configurator -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex-1 space-y-4">
+                <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wider flex items-center gap-2 mb-2">
+                    <i data-lucide="sliders" class="w-4 h-4 text-brand-500"></i>
+                    3. Formulario Dinámico
+                </h2>
+
+                <!-- Category & Option Selectors -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Categoría</label>
+                        <select id="cmbCategoria" onchange="onCategoriaChange()" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all font-medium text-slate-700">
+                            <option value="">-- Seleccionar Categoría --</option>
+                            <option value="GESTION BO">GESTION BO</option>
+                            <option value="GESTION PROGRAMACION">GESTION PROGRAMACION</option>
+                            <option value="GESTION SGI">GESTION SGI</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Opción / Plantilla</label>
+                        <select id="cmbOpcion" onchange="onOpcionChange()" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all font-medium text-slate-700 disabled:bg-slate-50 disabled:text-slate-400" disabled>
+                            <option value="">-- Seleccione Categoría Primero --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <hr class="border-slate-100 my-4">
+
+                <!-- Dynamic Form Fields -->
+                <div id="dynamicFieldsContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    
+                    <!-- txtTelefono -->
+                    <div id="field_txtTelefono" class="field-item">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1" id="lblTelefono">Teléfono</label>
+                        <input type="text" id="txtTelefono" oninput="handleInput(this)" class="w-full px-3 py-2 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500">
+                    </div>
+
+                    <!-- txtDNI -->
+                    <div id="field_txtDNI" class="field-item">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1" id="lblDNI">DNI / Documento</label>
+                        <input type="text" id="txtDNI" oninput="handleInput(this)" class="w-full px-3 py-2 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500">
+                    </div>
+
+                    <!-- txtCliente -->
+                    <div id="field_txtCliente" class="field-item">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1" id="lblCliente">Cliente</label>
+                        <input type="text" id="txtCliente" oninput="handleInput(this)" class="w-full px-3 py-2 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500">
+                    </div>
+
+                    <!-- txtCodigo -->
+                    <div id="field_txtCodigo" class="field-item">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1" id="lblCodigo">Código / Ticket</label>
+                        <input type="text" id="txtCodigo" oninput="handleInput(this)" class="w-full px-3 py-2 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500">
+                    </div>
+
+                    <!-- txtContrata -->
+                    <div id="field_txtContrata" class="field-item">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1" id="lblContrata">Contrata</label>
+                        <input type="text" id="txtContrata" value="TECSYCOM" oninput="handleInput(this)" class="w-full px-3 py-2 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500">
+                    </div>
+
+                    <!-- txtSolicitud -->
+                    <div id="field_txtSolicitud" class="field-item">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1" id="lblSolicitud">Solicitud</label>
+                        <input type="text" id="txtSolicitud" oninput="handleInput(this)" class="w-full px-3 py-2 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500">
+                    </div>
+
+                    <!-- txtZona -->
+                    <div id="field_txtZona" class="field-item">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1" id="lblZona">Zona</label>
+                        <input type="text" id="txtZona" value="CHICLAYO" oninput="handleInput(this)" class="w-full px-3 py-2 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500">
+                    </div>
+
+                    <!-- txtEstado -->
+                    <div id="field_txtEstado" class="field-item">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1" id="lblEstado">Estado</label>
+                        <input type="text" id="txtEstado" oninput="handleInput(this)" class="w-full px-3 py-2 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500">
+                    </div>
+
+                    <!-- txtMotivo -->
+                    <div id="field_txtMotivo" class="field-item sm:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1" id="lblMotivo">Motivo</label>
+                        <input type="text" id="txtMotivo" oninput="handleInput(this)" class="w-full px-3 py-2 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500">
+                    </div>
+
+                    <!-- cmbCuadrilla -->
+                    <div id="field_cmbCuadrilla" class="field-item">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1" id="lblCuadrilla">Cuadrilla</label>
+                        <select id="cmbCuadrilla" onchange="actualizarResultado()" class="cuadrilla-select w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500">
+                        </select>
+                    </div>
+
+                    <!-- cmbCuadrillas -->
+                    <div id="field_cmbCuadrillas" class="field-item">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1" id="lblCuadrillas">Cuadrillas</label>
+                        <select id="cmbCuadrillas" onchange="actualizarResultado()" class="cuadrilla-select w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500">
+                        </select>
+                    </div>
+
+                    <!-- cmbMoverCuadrilla -->
+                    <div id="field_cmbMoverCuadrilla" class="field-item">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1" id="lblMoverCuadrilla">Mover a Cuadrilla</label>
+                        <select id="cmbMoverCuadrilla" onchange="actualizarResultado()" class="cuadrilla-select w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500">
+                        </select>
+                    </div>
+
+                    <!-- txtObservacion -->
+                    <div id="field_txtObservacion" class="field-item sm:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1" id="lblObservacion">Observación</label>
+                        <textarea id="txtObservacion" rows="2" oninput="handleInput(this)" class="w-full px-3 py-2 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 resize-none"></textarea>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN: Telegram Preview & Copy Output (5 cols) -->
+        <div class="lg:col-span-5 flex flex-col space-y-6">
+
+            <div class="bg-slate-900 text-white rounded-2xl p-5 shadow-xl flex flex-col flex-1 border border-slate-800 sticky top-20">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                        <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+                        <span class="text-xs font-mono text-slate-400 ml-2">Telegram Preview</span>
+                    </div>
+                    <span id="activeOptionBadge" class="text-xs font-mono px-2 py-0.5 rounded bg-brand-500/20 text-brand-400 border border-brand-500/30">
+                        SIN SELECCIÓN
+                    </span>
+                </div>
+
+                <!-- Preview Box -->
+                <div class="flex-1 bg-slate-950/80 rounded-xl p-4 border border-slate-800 font-mono text-xs text-slate-200 whitespace-pre-wrap leading-relaxed overflow-y-auto max-h-[380px] min-h-[220px]" id="txtResultado">Selecciona una categoría y una plantilla para visualizar el formato generado aquí...</div>
+
+                <!-- Action Button -->
+                <div class="mt-5 pt-4 border-t border-slate-800 flex items-center justify-between gap-3">
+                    <button type="button" onclick="copiarTelegram()" class="flex-1 bg-brand-500 hover:bg-brand-600 text-white font-semibold py-3 px-4 rounded-xl shadow-lg shadow-brand-500/25 active:scale-[0.98] transition-all flex items-center justify-center space-x-2">
+                        <i data-lucide="copy" class="w-5 h-5"></i>
+                        <span>Copiar para Telegram</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 transform translate-y-20 opacity-0 transition-all duration-300 ease-out z-50 flex items-center bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl border border-slate-800 space-x-3">
+        <div class="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg">
+            <i data-lucide="check-circle" class="w-5 h-5"></i>
+        </div>
+        <div>
+            <p id="toastTitle" class="text-sm font-semibold">¡Copiado con éxito!</p>
+            <p id="toastMsg" class="text-xs text-slate-400">Listo para pegar en Telegram</p>
+        </div>
+    </div>
+
+    <!-- Application Script -->
+    <script>
+        // Global State
+        let excelRecords = [];
+        let selectedRecord = null;
+
+        // Internal Variables matching Macro
+        let mTelefono = "";
+        let mDNI = "";
+        let mCliente = "";
+        let mCodigo = "";
+        let mObservacion = "";
+        let mPartner = "TECSYCOM";
+        let mCuadrillas = "";
+        let mCuadrilla = "";
+
+        // Default Tecnicos List
+        const tecnicosOriginales = [
+            "P 1 TECSYCOM SGI JORGE JESUS CHAFLOQUE SIESQUEN",
+            "P 2 TECSYCOM SGI JONNY RAFAEL VEGA CADILLO",
+            "P 3 TECSYCOM SGI LUIS ANGEL CARRION DIAZ"
+        ];
+
+        // Initialize App on DOM Load
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            cargarTecnicos();
+            ocultarCampos();
+        });
+
+        // Load Tecnicos in Combos
+        function cargarTecnicos() {
+            const selects = document.querySelectorAll('.cuadrilla-select');
+            selects.forEach(select => {
+                select.innerHTML = '<option value="">-- Seleccionar Cuadrilla --</option>';
+                tecnicosOriginales.forEach(tec => {
+                    const opt = document.createElement('option');
+                    opt.value = tec;
+                    opt.textContent = tec;
+                    select.appendChild(opt);
+                });
+            });
+        }
+
+        // Excel File Upload Handler
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    
+                    // Convert sheet to JSON matrix (header: 1)
+                    const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+                    
+                    if (!rawData || rawData.length === 0) {
+                        alert("El archivo subido parece estar vacío.");
+                        return;
+                    }
+
+                    // Auto-detect header row
+                    let headerIndex = -1;
+                    for (let i = 0; i < Math.min(20, rawData.length); i++) {
+                        const rowStr = rawData[i].map(c => String(c).toLowerCase()).join(" ");
+                        if (rowStr.includes("codiseguiclien") || rowStr.includes("ordenid") || rowStr.includes("cliente") || rowStr.includes("número documento") || rowStr.includes("cuadrilla")) {
+                            headerIndex = i;
+                            break;
+                        }
+                    }
+
+                    // Default to row index 9 (line 10) if not found explicitly
+                    if (headerIndex === -1) {
+                        headerIndex = rawData.length > 9 ? 9 : 0;
+                    }
+
+                    const headers = rawData[headerIndex].map(h => String(h).trim());
+                    
+                    excelRecords = [];
+                    for (let r = headerIndex + 1; r < rawData.length; r++) {
+                        const row = rawData[r];
+                        if (!row || row.length === 0 || row.every(cell => String(cell).trim() === "")) continue;
+
+                        let obj = {};
+                        headers.forEach((h, idx) => {
+                            if (h) obj[h] = row[idx] !== undefined ? String(row[idx]).trim() : "";
+                        });
+                        excelRecords.push(obj);
+                    }
+
+                    // Update UI State
+                    document.getElementById('uploadIdleState').classList.add('hidden');
+                    document.getElementById('uploadLoadedState').classList.remove('hidden');
+                    document.getElementById('loadedFileName').textContent = file.name;
+                    document.getElementById('loadedFileDetails').textContent = `${excelRecords.length} registros cargados`;
+
+                    document.getElementById('fileStatusBadge').className = "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 border border-emerald-200";
+                    document.getElementById('fileStatusBadge').innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 mr-1.5"></span> ${excelRecords.length} Registros`;
+
+                    const searchInput = document.getElementById('searchInput');
+                    searchInput.disabled = false;
+                    searchInput.placeholder = `Buscar entre ${excelRecords.length} registros...`;
+                    searchInput.focus();
+
+                } catch (err) {
+                    console.error(err);
+                    alert("Error al procesar el archivo Excel. Asegúrate de que sea un archivo válido.");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Search Filter Engine
+        function filterRecords(query) {
+            const resultsContainer = document.getElementById('searchResults');
+            const clearBtn = document.getElementById('clearSearchBtn');
+
+            if (!query || query.trim() === "") {
+                resultsContainer.classList.add('hidden');
+                clearBtn.classList.add('hidden');
+                return;
+            }
+
+            clearBtn.classList.remove('hidden');
+            const q = query.toLowerCase().trim();
+
+            // Search matches specifically by CodiSeguiClien, Número Documento, OrdenId, Cliente, TeleMovilNume
+            const filtered = excelRecords.filter(item => {
+                const codiSeguiClien = (item['CodiSeguiClien'] || '').toLowerCase();
+                const numDoc = (item['Número Documento'] || item['DNI'] || item['Documento'] || '').toLowerCase();
+                const ordenId = (item['OrdenId'] || item['Orden'] || '').toLowerCase();
+                const cliente = (item['Cliente'] || item['CLIENTE'] || item['Nombre'] || '').toLowerCase();
+                const tel = (item['TeleMovilNume'] || item['Telefono'] || item['Movil'] || '').toLowerCase();
+
+                return codiSeguiClien.includes(q) || numDoc.includes(q) || ordenId.includes(q) || cliente.includes(q) || tel.includes(q);
+            }).slice(0, 10); // Limit to top 10
+
+            if (filtered.length === 0) {
+                resultsContainer.innerHTML = '<div class="p-3 text-xs text-slate-400 text-center">No se encontraron resultados</div>';
+            } else {
+                resultsContainer.innerHTML = filtered.map((rec, index) => {
+                    const codiSeguiClien = getVal(rec, ['CodiSeguiClien', 'COD_SEGUI_CLIEN']);
+                    const dni = getVal(rec, ['Número Documento', 'DNI', 'Documento']);
+                    const ordenId = getVal(rec, ['OrdenId', 'Orden']);
+                    const name = getVal(rec, ['Cliente', 'CLIENTE', 'Nombre']);
+                    const tel = getVal(rec, ['TeleMovilNume', 'Telefono', 'Movil']);
+
+                    return `
+                        <div onclick="selectRecord(${excelRecords.indexOf(rec)})" class="p-3 hover:bg-slate-50 cursor-pointer transition-colors flex items-center justify-between text-xs">
+                            <div>
+                                <p class="font-semibold text-slate-800">${name || 'Sin Nombre'}</p>
+                                <p class="text-slate-500"><span class="font-medium text-brand-600">CodSg:</span> ${codiSeguiClien || '-'} | <span class="font-medium">DNI:</span> ${dni || '-'} | <span class="font-medium">OrdenID:</span> ${ordenId || '-'}</p>
+                            </div>
+                            <div class="text-right text-slate-400">
+                                <p class="font-mono">${tel || '-'}</p>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            resultsContainer.classList.remove('hidden');
+        }
+
+        // Helper to extract fields dynamically
+        function getVal(obj, keys) {
+            for (let k of keys) {
+                if (obj[k] !== undefined && obj[k] !== null && String(obj[k]).trim() !== "") return String(obj[k]).trim();
+            }
+            return "";
+        }
+
+        // Select Record from Search
+        function selectRecord(index) {
+            const rec = excelRecords[index];
+            selectedRecord = rec;
+
+            // Exact column mapping as specified
+            mTelefono = getVal(rec, ['TeleMovilNume', 'Telefono', 'Movil', 'TELEFONO']);
+            mDNI = getVal(rec, ['Número Documento', 'DNI', 'Documento', 'NUMERO DOCUMENTO']);
+            mCliente = getVal(rec, ['Cliente', 'CLIENTE', 'Nombre']);
+            
+            // Codigo = CodiSeguiClien
+            mCodigo = getVal(rec, ['CodiSeguiClien', 'COD_SEGUI_CLIEN', 'CodiSegui']);
+            
+            mObservacion = getVal(rec, ['Observacion', 'Notas', 'OBSERVACION', 'Observaciones']) || "";
+            mPartner = getVal(rec, ['Proveedeor', 'Empresa', 'Contrata', 'Partner']) || "TECSYCOM";
+            mCuadrilla = getVal(rec, ['Cuadrilla', 'CUADRILLA', 'Tecnico']) || "";
+
+            const ordenId = getVal(rec, ['OrdenId', 'Orden']);
+
+            // Hide search results
+            document.getElementById('searchResults').classList.add('hidden');
+            document.getElementById('searchInput').value = "";
+
+            // Show Selected Pill with CodiSeguiClien, DNI and OrdenId
+            document.getElementById('selectedRecordBadge').classList.remove('hidden');
+            document.getElementById('selectedRecordText').textContent = `${mCliente} | CodSg: ${mCodigo} | DNI: ${mDNI} | OrdenID: ${ordenId}`;
+
+            // Sync with VBA PrepararFormulario
+            prepararFormulario();
+        }
+
+        function clearSelectedRecord() {
+            selectedRecord = null;
+            mTelefono = "";
+            mDNI = "";
+            mCliente = "";
+            mCodigo = "";
+            mObservacion = "";
+            mCuadrilla = "";
+
+            document.getElementById('selectedRecordBadge').classList.add('hidden');
+            prepararFormulario();
+        }
+
+        function clearSearch() {
+            document.getElementById('searchInput').value = "";
+            document.getElementById('searchResults').classList.add('hidden');
+            document.getElementById('clearSearchBtn').classList.add('hidden');
+        }
+
+        // VBA: PrepararFormulario logic
+        function prepararFormulario() {
+            asignarTexto("txtTelefono", mTelefono);
+            asignarTexto("txtDNI", mDNI);
+            asignarTexto("txtCliente", mCliente);
+            asignarTexto("txtCodigo", mCodigo);
+            asignarTexto("txtObservacion", mObservacion);
+
+            asignarTexto("txtContrata", mPartner || "TECSYCOM");
+            asignarTexto("txtSolicitud", "");
+            asignarTexto("txtZona", "CHICLAYO");
+            asignarTexto("txtEstado", "");
+            asignarTexto("txtMotivo", "");
+
+            // Cuadrilla match or set
+            setSelectValue("cmbCuadrilla", mCuadrilla);
+            setSelectValue("cmbCuadrillas", mCuadrillas);
+            setSelectValue("cmbMoverCuadrilla", "");
+
+            actualizarResultado();
+        }
+
+        function setSelectValue(id, value) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.value = value;
+            // If value doesn't exist in pre-defined options, add it dynamically
+            if (value && el.value !== value) {
+                const opt = document.createElement('option');
+                opt.value = value;
+                opt.textContent = value;
+                el.appendChild(opt);
+                el.value = value;
+            }
+        }
+
+        // Categoria Change Logic
+        function onCategoriaChange() {
+            const cat = document.getElementById('cmbCategoria').value;
+            const cmbOpcion = document.getElementById('cmbOpcion');
+            
+            cmbOpcion.innerHTML = '';
+
+            if (!cat) {
+                cmbOpcion.disabled = true;
+                cmbOpcion.innerHTML = '<option value="">-- Seleccione Categoría Primero --</option>';
+            } else {
+                cmbOpcion.disabled = false;
+                let options = [];
+
+                if (cat === "GESTION BO") {
+                    options = ["GESTION BO"];
+                } else if (cat === "GESTION PROGRAMACION") {
+                    options = ["HABILITAR ZONA", "STATUS CLIENTE", "RETIRO ORDEN", "REQUERIMIENTO DE CARGA"];
+                } else if (cat === "GESTION SGI") {
+                    options = ["REGESTION", "CAMBIO CUADRILLA", "REINICIO DE TAREA"];
+                }
+
+                options.forEach(optVal => {
+                    const opt = document.createElement('option');
+                    opt.value = optVal;
+                    opt.textContent = optVal;
+                    cmbOpcion.appendChild(opt);
+                });
+            }
+
+            onOpcionChange();
+        }
+
+        // Option Change Logic
+        function onOpcionChange() {
+            ocultarCampos();
+            const opcion = document.getElementById('cmbOpcion').value;
+
+            document.getElementById('activeOptionBadge').textContent = opcion || "SIN SELECCIÓN";
+
+            switch (opcion) {
+                case "GESTION BO":
+                    mostrar("txtTelefono");
+                    mostrar("txtDNI");
+                    mostrar("txtContrata");
+                    mostrar("txtCliente");
+                    mostrar("txtCodigo");
+                    mostrar("txtObservacion");
+                    break;
+
+                case "HABILITAR ZONA":
+                    mostrar("cmbCuadrilla");
+                    mostrar("txtContrata");
+                    mostrar("txtSolicitud");
+                    mostrar("txtZona");
+                    mostrar("txtObservacion");
+                    break;
+
+                case "STATUS CLIENTE":
+                    mostrar("txtDNI");
+                    mostrar("txtEstado");
+                    break;
+
+                case "RETIRO ORDEN":
+                    mostrar("txtDNI");
+                    mostrar("cmbCuadrilla");
+                    mostrar("txtMotivo");
+                    break;
+
+                case "REQUERIMIENTO DE CARGA":
+                    mostrar("txtZona");
+                    mostrar("cmbCuadrillas");
+                    break;
+
+                case "REGESTION":
+                case "REINICIO DE TAREA":
+                    mostrar("txtCodigo");
+                    mostrar("cmbCuadrilla");
+                    mostrar("txtMotivo");
+                    mostrar("txtObservacion");
+                    break;
+
+                case "CAMBIO CUADRILLA":
+                    mostrar("txtCodigo");
+                    mostrar("cmbMoverCuadrilla");
+                    mostrar("txtMotivo");
+                    mostrar("txtObservacion");
+                    break;
+            }
+
+            actualizarResultado();
+        }
+
+        // Hide / Show Helper Functions
+        function ocultarCampos() {
+            const campos = [
+                "txtTelefono", "txtDNI", "txtCliente", "txtCodigo",
+                "txtContrata", "txtSolicitud", "txtZona", "txtEstado",
+                "txtMotivo", "txtObservacion", "cmbCuadrilla",
+                "cmbCuadrillas", "cmbMoverCuadrilla"
+            ];
+            campos.forEach(c => cambiarVisible(c, false));
+        }
+
+        function mostrar(nombre) {
+            cambiarVisible(nombre, true);
+        }
+
+        function cambiarVisible(nombre, estado) {
+            const wrapper = document.getElementById(`field_${nombre}`);
+            if (wrapper) {
+                if (estado) wrapper.classList.remove('hidden');
+                else wrapper.classList.add('hidden');
+            }
+        }
+
+        function asignarTexto(id, val) {
+            const el = document.getElementById(id);
+            if (el) el.value = val || "";
+        }
+
+        function leerTexto(id) {
+            const el = document.getElementById(id);
+            return el ? el.value || "" : "";
+        }
+
+        // Uppercase Transformation Handler
+        function handleInput(el) {
+            el.value = el.value.toUpperCase();
+            actualizarResultado();
+        }
+
+        // Generate Telegram Template
+        function actualizarResultado() {
+            const opcion = document.getElementById('cmbOpcion').value;
+            let resultado = "";
+
+            switch (opcion) {
+                case "GESTION BO":
+                    resultado = `Teléfono: ${mTelefono}\n` +
+                                `DNI: ${mDNI}\n` +
+                                `Partner: ${mPartner}\n` +
+                                `Cliente: ${mCliente}\n` +
+                                `Código/Ticket: ${mCodigo}\n` +
+                                `OBS: ${leerTexto("txtObservacion")}`;
+                    break;
+
+                case "HABILITAR ZONA":
+                    resultado = `Cuadrilla: ${leerTexto("cmbCuadrilla")}\n` +
+                                `Contrata: ${leerTexto("txtContrata")}\n` +
+                                `Solicitud: ${leerTexto("txtSolicitud")}\n` +
+                                `Zona: ${leerTexto("txtZona")}\n` +
+                                `OBS: ${leerTexto("txtObservacion")}`;
+                    break;
+
+                case "STATUS CLIENTE":
+                    resultado = `DNI: ${mDNI}\n` +
+                                `Estado: ${leerTexto("txtEstado")}`;
+                    break;
+
+                case "RETIRO ORDEN":
+                    resultado = `DNI: ${mDNI}\n` +
+                                `Cuadrilla: ${leerTexto("cmbCuadrilla")}\n` +
+                                `Motivo: ${leerTexto("txtMotivo")}`;
+                    break;
+
+                case "REQUERIMIENTO DE CARGA":
+                    resultado = `Partner: ${mPartner}\n` +
+                                `Zona: ${leerTexto("txtZona")}\n` +
+                                `Cuadrillas: ${leerTexto("cmbCuadrillas")}`;
+                    break;
+
+                case "REGESTION":
+                    resultado = `COD: ${mCodigo}\n` +
+                                `Cuadrilla: ${leerTexto("cmbCuadrilla")}\n` +
+                                `Partner: ${mPartner}\n` +
+                                `Motivo: ${leerTexto("txtMotivo")}\n` +
+                                `Observación: ${leerTexto("txtObservacion")}`;
+                    break;
+
+                case "CAMBIO CUADRILLA":
+                    resultado = `COD: ${mCodigo}\n` +
+                                `Mover a la cuadrilla: ${leerTexto("cmbMoverCuadrilla")}\n` +
+                                `Partner: ${mPartner}\n` +
+                                `Motivo: ${leerTexto("txtMotivo")}\n` +
+                                `Observación: ${leerTexto("txtObservacion")}`;
+                    break;
+
+                case "REINICIO DE TAREA":
+                    resultado = `COD: ${mCodigo}\n` +
+                                `Cuadrilla: ${leerTexto("cmbCuadrilla")}\n` +
+                                `Partner: ${mPartner}\n` +
+                                `Motivo: ${leerTexto("txtMotivo")}\n` +
+                                `Observación: ${leerTexto("txtObservacion")}`;
+                    break;
+
+                default:
+                    resultado = "";
+            }
+
+            document.getElementById('txtResultado').textContent = resultado || "Selecciona una categoría y plantilla para ver el texto resultante...";
+        }
+
+        // Copy to Telegram Clipboard Action
+        function copiarTelegram() {
+            const opcion = document.getElementById('cmbOpcion').value;
+            if (!opcion) {
+                showToast("Atención", "Por favor selecciona una plantilla.", "warning");
+                return;
+            }
+
+            const texto = document.getElementById('txtResultado').textContent;
+            if (!texto || texto.startsWith("Selecciona")) {
+                showToast("Atención", "No hay contenido para copiar.", "warning");
+                return;
+            }
+
+            // Clipboard fallback logic
+            const tempArea = document.createElement("textarea");
+            tempArea.value = texto;
+            document.body.appendChild(tempArea);
+            tempArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempArea);
+
+            showToast("¡Copiado correctamente!", "Plantilla lista para pegar en Telegram.");
+        }
+
+        // Toast Notification System
+        function showToast(title, message, type = "success") {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastTitle').textContent = title;
+            document.getElementById('toastMsg').textContent = message;
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // Reset Everything
+        function resetAll() {
+            document.getElementById('excelFileInput').value = "";
+            document.getElementById('uploadIdleState').classList.remove('hidden');
+            document.getElementById('uploadLoadedState').classList.add('hidden');
+            
+            document.getElementById('fileStatusBadge').className = "hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200";
+            document.getElementById('fileStatusBadge').innerHTML = `<span class="w-2 h-2 rounded-full bg-slate-400 mr-1.5"></span> Sin Archivo`;
+
+            const searchInput = document.getElementById('searchInput');
+            searchInput.disabled = true;
+            searchInput.value = "";
+            searchInput.placeholder = "Buscar por Nombre, DNI, Teléfono u Orden ID...";
+
+            excelRecords = [];
+            clearSelectedRecord();
+
+            document.getElementById('cmbCategoria').value = "";
+            onCategoriaChange();
+        }
+    </script>
+</body>
+</html>
