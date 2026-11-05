@@ -48,7 +48,7 @@
     display:block; font-weight:500; font-size:11.5px; color: #a0aec0;
   }
   
-  /* Botones originales restaurados tal como los tenías */
+  /* Botones originales restaurados */
   .tab-btn{
     font-family:inherit; font-size:13px; font-weight:600;
     color:var(--text-dim); background:var(--panel-2);
@@ -122,6 +122,17 @@
       </svg>
       Mesh
     </button>
+    <!-- Botón WIN Agregado -->
+    <button class="tab-btn" data-target="frame-win">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="2"/>
+        <path d="M16.24 7.76a6 6 0 0 1 0 8.48"/>
+        <path d="M7.76 16.24a6 6 0 0 1 0-8.48"/>
+        <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+        <path d="M4.93 19.07a10 10 0 0 1 0-14.14"/>
+      </svg>
+      WIN
+    </button>
     <div class="sync-status" id="syncStatus"></div>
   </nav>
 
@@ -138,6 +149,8 @@
     <iframe id="frame-garantias" src="garantias.html" data-nosync></iframe>
     <iframe id="frame-descansoprog" src="descanso_programado.html" data-nosync></iframe>
     <iframe id="frame-mesh" src="quantum_mesh_validator.html" data-nosync></iframe>
+    <!-- Frame WIN Agregado con data-nosync (evita colisión de sincronización general) -->
+    <iframe id="frame-win" src="centro-operativo.html" data-nosync></iframe>
   </div>
 </div>
 
