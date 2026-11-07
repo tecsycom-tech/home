@@ -122,7 +122,6 @@
       </svg>
       Mesh
     </button>
-    <!-- Botón WIN Agregado -->
     <button class="tab-btn" data-target="frame-win">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="2"/>
@@ -132,6 +131,15 @@
         <path d="M4.93 19.07a10 10 0 0 1 0-14.14"/>
       </svg>
       WIN
+    </button>
+    <!-- Botón PF vs WIN Agregado -->
+    <button class="tab-btn" data-target="frame-pwin">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 20V10"/>
+        <path d="M12 20V4"/>
+        <path d="M6 20v-6"/>
+      </svg>
+      PF vs WIN
     </button>
     <div class="sync-status" id="syncStatus"></div>
   </nav>
@@ -149,8 +157,9 @@
     <iframe id="frame-garantias" src="garantias.html" data-nosync></iframe>
     <iframe id="frame-descansoprog" src="descanso_programado.html" data-nosync></iframe>
     <iframe id="frame-mesh" src="quantum_mesh_validator.html" data-nosync></iframe>
-    <!-- Frame WIN Agregado con data-nosync (evita colisión de sincronización general) -->
     <iframe id="frame-win" src="centro-operativo.html" data-nosync></iframe>
+    <!-- Frame PF vs WIN Agregado -->
+    <iframe id="frame-pwin" src="reporte_pwin.html" data-nosync></iframe>
   </div>
 </div>
 
