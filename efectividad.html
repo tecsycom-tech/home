@@ -632,6 +632,14 @@
 
   <div class="filters" id="filtersBar" style="display:none;">
     <div class="filter-group">
+      <label for="fSede">SEDE</label>
+      <select id="fSede">
+        <option value="">Todas</option>
+        <option value="CHICLAYO">CHICLAYO</option>
+        <option value="LIMA">LIMA</option>
+      </select>
+    </div>
+    <div class="filter-group">
       <label for="fNegocio">NEGOCIO</label>
       <select id="fNegocio"><option value="">Todos</option></select>
     </div>
@@ -714,6 +722,27 @@
 
   function clean(v){ return (v===undefined||v===null) ? '' : String(v).trim(); }
 
+  function getSedeTecnico(tecnico){
+    const norm = clean(tecnico)
+      .toUpperCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, ' ');
+
+    const esChiclayo =
+      norm.includes('JORGE CHAFLOQUE') ||
+      norm.includes('JORGE JESUS CHAFLOQUE') ||
+      norm.includes('CHAFLOQUE SIESQUEN') ||
+      norm.includes('LUIS CARRION') ||
+      norm.includes('LUIS ANGEL CARRION') ||
+      norm.includes('CARRION DIAZ') ||
+      norm.includes('JONNY VEGA') ||
+      norm.includes('JONNY RAFAEL VEGA') ||
+      norm.includes('VEGA CADILLO');
+
+    return esChiclayo ? 'CHICLAYO' : 'LIMA';
+  }
+
   function normalizeRows(json){
     return json.map(r => {
       let tecnico = clean(r['Tecnico']) || clean(r['Cuadrilla']);
@@ -725,6 +754,7 @@
         distrito: clean(r['Distrito']),
         estado: clean(r['Estado']).toUpperCase(),
         tecnico: tecnico,
+        sede: getSedeTecnico(tecnico),
         tramo: clean(r['Tramo'])
       };
     }).filter(r => r.distrito || r.tecnico);
@@ -745,10 +775,12 @@
   }
   function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
+  document.getElementById('fSede').addEventListener('change', render);
   document.getElementById('fNegocio').addEventListener('change', render);
   document.getElementById('fTramo').addEventListener('change', render);
   document.getElementById('fBuscar').addEventListener('input', render);
   document.getElementById('btnReset').addEventListener('click', () => {
+    document.getElementById('fSede').value = '';
     document.getElementById('fNegocio').value = '';
     document.getElementById('fTramo').value = '';
     document.getElementById('fBuscar').value = '';
@@ -757,9 +789,11 @@
   document.getElementById('btnExport').addEventListener('click', exportExcel);
 
   function getFilteredRows(){
+    const sede = document.getElementById('fSede').value;
     const negocio = document.getElementById('fNegocio').value;
     const tramo = document.getElementById('fTramo').value;
     return rawRows.filter(r =>
+      (!sede || r.sede === sede) &&
       (!negocio || r.negocio === negocio) &&
       (!tramo || r.tramo === tramo)
     );
