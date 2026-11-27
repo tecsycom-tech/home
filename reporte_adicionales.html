@@ -98,7 +98,7 @@
   main{max-width:1440px;margin:0 auto;padding:clamp(16px,3vw,32px);}
 
   .filtros-bar{
-    display:flex;flex-wrap:wrap;align-items:center;gap:12px;
+    display:flex;flex-wrap:wrap;align-items:center;gap:14px;
     background:var(--paper-2);border:1px solid var(--line);border-radius:10px;
     padding:12px 16px;margin-bottom:16px;box-shadow:0 1px 2px rgba(0,0,0,0.03);
   }
@@ -109,7 +109,7 @@
   .filtro-item select{
     background:#fff;border:1px solid var(--line);border-radius:6px;
     padding:7px 10px;font-size:13px;font-family:var(--font-ui);
-    color:var(--ink);min-width:200px;cursor:pointer;
+    color:var(--ink);min-width:170px;cursor:pointer;
   }
   .filtro-item select:focus{outline:2px solid var(--brand-primary);outline-offset:1px;}
 
@@ -374,9 +374,6 @@
     color:var(--ink);
   }
 
-  /* ==========================================================
-     Tarjetas KPI de Efectividad
-     ========================================================== */
   .efectividad-cards{
     display:grid;
     grid-template-columns:repeat(4, 1fr);
@@ -464,12 +461,20 @@
 
   <div class="filtros-bar" id="filtrosBar" style="display:none;">
     <div class="filtro-item">
+      <label for="filtroSede">SEDE</label>
+      <select id="filtroSede">
+        <option value="">Todas</option>
+        <option value="LIMA">LIMA</option>
+        <option value="CHICLAYO">CHICLAYO</option>
+      </select>
+    </div>
+    <div class="filtro-item" id="filtroNegocioWrap">
       <label for="filtroNegocio">NEGOCIO</label>
       <select id="filtroNegocio">
         <option value="">Todos</option>
       </select>
     </div>
-    <button class="btn small subtle" id="btnLimpiarFiltro">Limpiar filtro</button>
+    <button class="btn small subtle" id="btnLimpiarFiltro">Limpiar filtros</button>
   </div>
 
   <div class="upload-card" id="uploadCard">
@@ -595,7 +600,6 @@
         <div id="estadoAviso" class="info-note" style="display:none;"></div>
         <div id="estadoContent" style="display:none;">
 
-          <!-- ======== Tarjetas de Efectividad / Productividad ======== -->
           <div class="efectividad-cards" id="efectividadCards">
             <div class="ef-card green">
               <div class="ef-label">Efectividad Finalizados</div>
@@ -624,7 +628,6 @@
               <div class="ef-sub" id="efFaltanSub">—</div>
             </div>
           </div>
-          <!-- ========================================================= -->
 
           <div class="avance-bar-wrap">
             <div class="avance-bar" id="avanceBar"></div>
@@ -649,19 +652,59 @@
 <script>
 (function(){
 
-  // ============================================================
-  // OBJETIVO de efectividad EDITABLE y PERSISTENTE (localStorage)
-  // ============================================================
   const LS_KEY = 'peru_fibra_objetivo_efectividad';
   let OBJETIVO_EFECTIVIDAD = 0.65;
   try{
     const saved = parseFloat(localStorage.getItem(LS_KEY));
     if(!isNaN(saved) && saved > 0 && saved <= 1) OBJETIVO_EFECTIVIDAD = saved;
-  }catch(e){ /* localStorage no disponible */ }
+  }catch(e){}
 
   function guardarObjetivo(v01){
     OBJETIVO_EFECTIVIDAD = v01;
     try{ localStorage.setItem(LS_KEY, String(v01)); }catch(e){}
+  }
+
+  // ============================================================
+  // LISTA DE TÉCNICOS / CUADRILLAS DE CHICLAYO
+  // (Agregar aquí nuevos técnicos o claves de Chiclayo; cualquier otro será LIMA)
+  // ============================================================
+  const TECNICOS_CHICLAYO = [
+    'P 1 TECSYCOM SGI JORGE JESUS CHAFLOQUE SIESQUEN',
+    'P 2 TECSYCOM SGI JONNY RAFAEL VEGA CADILLO',
+    'P 3 TECSYCOM SGI LUIS ANGEL CARRION DIAZ'
+  ];
+
+  const CLAVES_CHICLAYO = [
+    'CHAFLOQUE',
+    'JONNY RAFAEL VEGA',
+    'VEGA CADILLO',
+    'LUIS ANGEL CARRION',
+    'CARRION DIAZ'
+  ];
+
+  function normalizarNombreTecnico(txt){
+    return (txt || '').toString()
+      .toUpperCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^A-Z0-9]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function getSedeFila(row){
+    const tecnicoNorm = normalizarNombreTecnico(row['Tecnico']);
+    if (!tecnicoNorm) return 'LIMA';
+
+    const listaNorm = TECNICOS_CHICLAYO.map(normalizarNombreTecnico);
+    if (listaNorm.includes(tecnicoNorm)) return 'CHICLAYO';
+
+    const clavesNorm = CLAVES_CHICLAYO.map(normalizarNombreTecnico);
+    if (clavesNorm.some(clave => clave && tecnicoNorm.includes(clave))) {
+      return 'CHICLAYO';
+    }
+
+    return 'LIMA';
   }
 
   // ============================================================
@@ -839,7 +882,7 @@
     'Distrito': ['distrito'],
     'Provincia': ['provincia'],
     'H_Progra': ['h_progra'],
-    'Tramo_Atencio': ['tramo_atencio'],
+    'Tramo_Atencio': ['tramo_atencio', 'tramo_atencion'],
     'Negocio': ['negocio','tipo_negocio','tipo_de_negocio'],
     'Estado': ['estado','estado_orden','estadoorden','status','situacion','estado_actual','estado_servicio','estado_trabajo'],
     'Tecnico': ['tecnico','técnico','tecnico_asignado','nombre_tecnico','tecnico_responsable',
@@ -957,10 +1000,19 @@
   }
 
   function mapTramo(str){
-    const t = (str || '').trim().toUpperCase();
-    if(/^0?8(:00(:00)?)?$/.test(t) || /^08\s*[-–]\s*12/.test(t) || /^08\s*AM/.test(t)) return 'T1';
-    if(/^12(:00(:00)?)?$/.test(t) || /^12\s*[-–]\s*16/.test(t) || /^12\s*PM/.test(t)) return 'T2';
-    if(/^16(:00(:00)?)?$/.test(t) || /^16\s*[-–]\s*20/.test(t) || /^16\s*PM/.test(t)) return 'T3';
+    const raw = (str || '').toString().trim();
+    if(!raw) return null;
+    const num = parseFloat(raw.replace(',', '.'));
+    if(!isNaN(num) && num > 0 && num < 1 && /^\d+(?:[.,]\d+)?$/.test(raw)){
+      const h = Math.round(num * 24);
+      if(h >= 8 && h < 12) return 'T1';
+      if(h >= 12 && h < 16) return 'T2';
+      if(h >= 16 && h <= 20) return 'T3';
+    }
+    const t = raw.toUpperCase();
+    if(/^0?8(:00(:00)?)?$/.test(t) || /^08\s*[-–]\s*12/.test(t) || /^08\s*AM/.test(t) || /^1ER\s*TRAMO/.test(t)) return 'T1';
+    if(/^12(:00(:00)?)?$/.test(t) || /^12\s*[-–]\s*16/.test(t) || /^12\s*PM/.test(t) || /^2DO\s*TRAMO/.test(t)) return 'T2';
+    if(/^16(:00(:00)?)?$/.test(t) || /^16\s*[-–]\s*20/.test(t) || /^16\s*PM/.test(t) || /^3ER\s*TRAMO/.test(t)) return 'T3';
     return null;
   }
 
@@ -1050,8 +1102,9 @@
       const provincia = (row['Provincia'] || '').toUpperCase().trim();
       const tramoRaw = row['Tramo_Atencio'];
       const hProgra = parseFechaHora(row['H_Progra']);
+      const tk = mapTramo(tramoRaw);
 
-      if(!distrito || !hProgra){ omitidos++; return; }
+      if(!distrito || (!hProgra && !tk)){ omitidos++; return; }
       leidos++;
 
       if(!distritos.has(distrito)){
@@ -1070,8 +1123,7 @@
       }
 
       const rec = distritos.get(distrito);
-      if(hProgra < limite08){
-        const tk = mapTramo(tramoRaw);
+      if(!hProgra || hProgra < limite08){
         if(tk === 'T1') rec.t1++;
         else if(tk === 'T2') rec.t2++;
         else if(tk === 'T3') rec.t3++;
@@ -1235,13 +1287,13 @@
     rows.forEach(row=>{
       const distrito = (row['Distrito'] || '').trim();
       const hProgra = parseFechaHora(row['H_Progra']);
-      if(!distrito || !hProgra) return;
+      const tk = mapTramo(row['Tramo_Atencio']);
+      if(!distrito || (!hProgra && !tk)) return;
 
       let bucketKey = null;
       let turnoKey = null;
 
-      if(hProgra < limite08){
-        const tk = mapTramo(row['Tramo_Atencio']);
+      if(!hProgra || hProgra < limite08){
         if(tk){
           bucketKey = tk;
           turnoKey = tk;
@@ -1320,34 +1372,26 @@
   function pct1(x){ return (x*100).toFixed(0) + '%'; }
   function pctN(x, n){ return (x*100).toFixed(n) + '%'; }
 
-  // ============================================================
-  // Tarjetas de Efectividad / Productividad
-  // ============================================================
   function renderEfectividadCards(porTecnico, granTotal){
     const list = Object.values(porTecnico || {});
     const t = totalesTecnicos(list);
 
-    // 1) Efectividad Finalizados = FINALIZADO / TOTAL
     const efFin = t.total ? (t.finalizado / t.total) : 0;
     document.getElementById('efFinalizados').textContent = pctN(efFin, 1);
     document.getElementById('efFinalizadosSub').textContent =
       t.finalizado + ' finalizados / ' + t.total + ' asignados';
 
-    // 2) Efectividad Aproximada = (FINALIZADO + EN PROCESO) / TOTAL
     const efAprox = t.total ? ((t.finalizado + t.enProceso) / t.total) : 0;
     document.getElementById('efAproximada').textContent = pctN(efAprox, 1);
     document.getElementById('efAproximadaSub').textContent =
       (t.finalizado + t.enProceso) + ' (final. + en proc.) / ' + t.total + ' asignados';
 
-    // 3) Productividad Promedio = FINALIZADOS / técnicos activos
-    //    "Técnico activo" = técnico con al menos 1 OT asignada.
     const tecnicosActivos = list.filter(g => g.total > 0).length;
     const prodProm = tecnicosActivos > 0 ? (t.finalizado / tecnicosActivos) : 0;
     document.getElementById('efPromedio').textContent = prodProm.toFixed(1);
     document.getElementById('efPromedioSub').textContent =
       'Efectivos por técnico activo (' + tecnicosActivos + ' activo' + (tecnicosActivos === 1 ? '' : 's') + ')';
 
-    // 4) Faltan para Objetivo
     const objetivo = OBJETIVO_EFECTIVIDAD;
     let faltan = Math.ceil(objetivo * t.total) - t.finalizado;
     if (faltan < 0) faltan = 0;
@@ -1560,6 +1604,7 @@
 
   function poblarFiltroNegocio(rows){
     const sel = document.getElementById('filtroNegocio');
+    const wrap = document.getElementById('filtroNegocioWrap');
     const valores = [...new Set(
       rows.map(r => (r['Negocio'] || '').toString().trim()).filter(Boolean)
     )].sort((a,b)=> a.localeCompare(b));
@@ -1569,19 +1614,28 @@
       valores.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
     sel.value = valores.includes(actual) ? actual : '';
 
-    document.getElementById('filtrosBar').style.display = valores.length ? 'flex' : 'none';
+    if (wrap) wrap.style.display = valores.length ? 'flex' : 'none';
+    document.getElementById('filtrosBar').style.display = rows.length ? 'flex' : 'none';
   }
 
   function buildReport(rows, estadoDisponible){
     window.__lastRowsAll = rows;
     if(typeof estadoDisponible === 'boolean') window.__estadoDisponible = estadoDisponible;
 
+    rows.forEach(r => {
+      r.__sede = getSedeFila(r);
+    });
+
     poblarFiltroNegocio(rows);
 
+    const sedeSel = document.getElementById('filtroSede').value;
     const negocioSel = document.getElementById('filtroNegocio').value;
-    const rowsFiltradas = negocioSel
-      ? rows.filter(r => (r['Negocio'] || '').toString().trim() === negocioSel)
-      : rows;
+
+    const rowsFiltradas = rows.filter(r => {
+      const okSede = !sedeSel || r.__sede === sedeSel;
+      const okNegocio = !negocioSel || (r['Negocio'] || '').toString().trim() === negocioSel;
+      return okSede && okNegocio;
+    });
 
     window.__lastRows = rowsFiltradas;
 
@@ -1601,8 +1655,9 @@
 
     document.getElementById('notaPie').textContent =
       'Reporte generado: ' + hoy.toLocaleString('es-PE') +
-      ' · Registros leídos: ' + leidos + ' · Omitidos (sin distrito o fecha inválida): ' + omitidos +
-      (negocioSel ? ' · Filtro Negocio: "' + negocioSel + '"' : '');
+      ' · Registros leídos: ' + leidos + ' · Omitidos (sin distrito o fecha/tramo inválido): ' + omitidos +
+      (sedeSel ? ' · Sede: "' + sedeSel + '"' : '') +
+      (negocioSel ? ' · Negocio: "' + negocioSel + '"' : '');
 
     document.getElementById('pageLayout').style.display = 'flex';
   }
@@ -1650,6 +1705,7 @@
     document.getElementById('pageLayout').style.display = 'none';
     document.getElementById('estadoLayout').style.display = 'none';
     document.getElementById('filtrosBar').style.display = 'none';
+    document.getElementById('filtroSede').value = '';
     document.getElementById('filtroNegocio').value = '';
     window.__estadoDisponible = false;
     window.__lastRowsAll = null;
@@ -1662,17 +1718,18 @@
     hideError();
   });
 
+  document.getElementById('filtroSede').addEventListener('change', ()=>{
+    if(window.__lastRowsAll) buildReport(window.__lastRowsAll);
+  });
   document.getElementById('filtroNegocio').addEventListener('change', ()=>{
     if(window.__lastRowsAll) buildReport(window.__lastRowsAll);
   });
   document.getElementById('btnLimpiarFiltro').addEventListener('click', ()=>{
+    document.getElementById('filtroSede').value = '';
     document.getElementById('filtroNegocio').value = '';
     if(window.__lastRowsAll) buildReport(window.__lastRowsAll);
   });
 
-  // ============================================================
-  // Input editable del OBJETIVO (persistente)
-  // ============================================================
   const objetivoInput = document.getElementById('efObjetivo');
   objetivoInput.value = Math.round(OBJETIVO_EFECTIVIDAD * 100);
 
